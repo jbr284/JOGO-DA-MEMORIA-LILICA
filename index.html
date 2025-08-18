@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* === PALETA DE CORES E VARIÁVEIS GLOBAIS === */
+        /* O CSS da versão anterior já está correto e inclui as regras de responsividade */
         :root {
             --primary-color: #4f46e5;
             --primary-hover: #4338ca;
@@ -36,10 +36,9 @@
             color: var(--text-secondary);
             display: flex;
             justify-content: center;
-            padding: 20px;
+            padding: 1rem;
         }
 
-        /* === ESTRUTURA PRINCIPAL === */
         .main-container {
             width: 100%;
             max-width: 800px;
@@ -50,92 +49,44 @@
             border: 1px solid var(--border-color);
         }
 
-        header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        h1 {
-            font-size: 2.25rem;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
-        h2 {
-            font-size: 1.125rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
+        header { text-align: center; margin-bottom: 2rem; }
+        h1 { font-size: 2.25rem; color: var(--text-primary); margin-bottom: 0.5rem; font-weight: 700; }
+        h2 { font-size: 1.125rem; font-weight: 500; color: var(--text-secondary); }
         #live-clock {
-            text-align: center;
-            font-size: 1rem;
-            font-weight: 500;
-            margin-bottom: 2rem;
-            padding: 12px;
-            background-color: var(--background-color);
-            border-radius: 8px;
-            color: var(--text-secondary);
+            text-align: center; font-size: 1rem; font-weight: 500;
+            margin-bottom: 2rem; padding: 12px; background-color: var(--background-color); border-radius: 8px; color: var(--text-secondary);
         }
 
-        /* === FORMULÁRIO === */
-        #record-form {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2.5rem;
-        }
+        #record-form { display: flex; gap: 1rem; margin-bottom: 2.5rem; }
         #glucose-value {
-            flex-grow: 1;
-            padding: 12px 16px;
-            font-size: 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            flex-grow: 1; padding: 12px 16px; font-size: 1rem;
+            border: 1px solid var(--border-color); border-radius: 8px; transition: border-color 0.2s, box-shadow 0.2s;
         }
-        #glucose-value:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
-        }
+        #glucose-value:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
         
-        /* === SISTEMA DE BOTÕES PROFISSIONAL === */
         .btn {
-            padding: 12px 24px;
-            font-size: 1rem;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            padding: 12px 24px; font-size: 1rem; font-weight: 600;
+            border: none; border-radius: 8px; cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s, border-color 0.2s, color 0.2s;
+            display: inline-flex; align-items: center; justify-content: center;
         }
         .btn:hover { transform: translateY(-1px); }
         .btn:active { transform: translateY(0); }
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: var(--surface-color);
-        }
+        .btn-primary { background-color: var(--primary-color); color: var(--surface-color); }
         .btn-primary:hover { background-color: var(--primary-hover); }
         .delete-btn {
-            padding: 6px 12px;
-            font-size: 0.875rem;
-            background-color: var(--danger-color);
-            color: var(--surface-color);
+            padding: 6px 12px; font-size: 0.875rem;
+            background-color: var(--danger-color); color: var(--surface-color);
         }
         .delete-btn:hover { background-color: var(--danger-hover); }
-        #export-pdf-btn {
-            background-color: var(--success-color);
-            color: var(--surface-color);
-        }
+        #export-pdf-btn { background-color: var(--success-color); color: var(--surface-color); }
         #export-pdf-btn:hover { background-color: var(--success-hover); }
         #clear-data-btn {
-            background-color: transparent;
-            color: var(--danger-color);
+            background-color: transparent; color: var(--danger-color);
             border: 1px solid var(--danger-color);
         }
         #clear-data-btn:hover { background-color: var(--danger-color); color: var(--surface-color); }
 
-        /* === TABELA === */
         .table-container { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; }
         #records-table { width: 100%; border-collapse: collapse; }
         #records-table th, #records-table td {
@@ -143,7 +94,7 @@
             text-align: left;
             border-bottom: 1px solid var(--border-color);
         }
-        #records-table thead th {
+        #records-table thead {
             background-color: var(--background-color);
             font-size: 0.875rem;
             font-weight: 600;
@@ -156,8 +107,6 @@
         
         .table-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
         
-        /* === MODAL === */
-        /* (Estilos do modal permanecem os mesmos, já eram robustos) */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--overlay-color); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-overlay.show { display: flex; }
         .modal-content { background-color: var(--surface-color); padding: 2rem; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: center; max-width: 400px; width: 90%; }
@@ -166,6 +115,46 @@
         #btn-jejum { background-color: var(--success-color); color: var(--white-color); }
         #btn-alimentado { background-color: var(--warning-color); color: var(--text-primary); }
 
+        @media (max-width: 768px) {
+            body { padding: 0; }
+            .main-container {
+                padding: 1.5rem 1rem;
+                border-radius: 0;
+                border: none;
+                box-shadow: none;
+            }
+            h1 { font-size: 1.75rem; }
+            h2 { font-size: 1rem; }
+
+            #record-form { flex-direction: column; }
+            .table-actions { flex-direction: column; gap: 0.5rem; }
+            .table-actions .btn { width: 100%; }
+
+            .table-container { border: none; overflow-x: hidden;}
+            #records-table thead { display: none; }
+            #records-table, #records-table tbody, #records-table tr, #records-table td { display: block; width: 100%; }
+            #records-table tr {
+                margin-bottom: 1rem;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                overflow: hidden; 
+            }
+            #records-table td {
+                text-align: right; position: relative; padding-left: 50%;
+                border-bottom: 1px solid var(--border-color);
+            }
+             #records-table tr td:last-child { border-bottom: none; }
+            #records-table td:before {
+                content: attr(data-label);
+                position: absolute; left: 16px; width: calc(50% - 24px);
+                text-align: left; font-weight: 600; color: var(--text-primary);
+            }
+            #records-table td:last-child {
+                padding-left: 16px; display: flex; justify-content: flex-end;
+                background-color: var(--background-color);
+            }
+             #records-table td:last-child:before { content: ''; }
+        }
     </style>
 </head>
 <body>
@@ -174,14 +163,11 @@
             <h1>Acompanhamento de Diabetes</h1>
             <h2>Paciente: Eva Ortiz Rosa</h2>
         </header>
-
         <div id="live-clock"></div>
-
         <form id="record-form">
             <input type="number" id="glucose-value" placeholder="Digite o valor da glicemia..." required min="0">
             <button type="submit" class="btn btn-primary">Registrar</button>
         </form>
-
         <div class="table-container">
             <table id="records-table">
                 <thead>
@@ -195,13 +181,11 @@
                 <tbody id="records-tbody"></tbody>
             </table>
         </div>
-        
         <div class="table-actions">
             <button id="export-pdf-btn" class="btn">Exportar PDF</button>
             <button id="clear-data-btn" class="btn">Limpar Dados</button>
         </div>
     </div>
-
     <div id="confirmation-modal" class="modal-overlay">
         <div class="modal-content">
             <p>Paciente está em jejum?</p>
@@ -214,13 +198,11 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const firebaseConfig = {
+    document.addEventListener('DOMContentLoaded', () => {
+        const firebaseConfig = {
   apiKey: "AIzaSyC-V57C7nGGLsa6j2UPmock37JZ84ZL6g0",
   authDomain: "variacao-de-diabetes-eva-ortiz.firebaseapp.com",
   databaseURL: "https://variacao-de-diabetes-eva-ortiz-default-rtdb.firebaseio.com",
@@ -228,32 +210,13 @@
   storageBucket: "variacao-de-diabetes-eva-ortiz.firebasestorage.app",
   messagingSenderId: "271754228044",
   appId: "1:271754228044:web:12bebbf2f374673b57dfe9"
-            };
+            // ... COLE SUAS CREDENCIAIS DO FIREBASE AQUI ...
 
-            firebase.initializeApp(firebaseConfig);
-            const database = firebase.database();
-            const recordsRef = database.ref('registros');
-            
-            // ... (A lógica JavaScript permanece a mesma da versão anterior do Firebase) ...
-            
-        });
-    </script>
-    
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        if (window.firebase.apps.length === 0) { // Evita re-inicialização
-             const firebaseConfig = {
-                apiKey: "SUA_API_KEY",
-                authDomain: "SEU_AUTH_DOMAIN",
-                databaseURL: "SUA_DATABASE_URL",
-                projectId: "SEU_PROJECT_ID",
-                storageBucket: "SEU_STORAGE_BUCKET",
-                messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-                appId: "SEU_APP_ID"
-            };
-            firebase.initializeApp(firebaseConfig);
-        }
+        };
         
+        // O restante do JavaScript permanece o mesmo.
+        
+        firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const recordsRef = database.ref('registros');
         const clockElement = document.getElementById('live-clock');
@@ -284,10 +247,12 @@
                         const row = tableBody.insertRow();
                         const dateTime = new Date(record.timestamp).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
                         row.innerHTML = `
-                            <td>${dateTime}</td>
-                            <td>${record.state}</td>
-                            <td>${record.value}</td>
-                            <td><button class="btn delete-btn" data-id="${record.id}">Excluir</button></td>
+                            <td data-label="Data e Hora">${dateTime}</td>
+                            <td data-label="Estado">${record.state}</td>
+                            <td data-label="Valor (mg/dL)">${record.value}</td>
+                            <td data-label="Ações">
+                                <button class="btn delete-btn" data-id="${record.id}">Excluir</button>
+                            </td>
                         `;
                     });
                 }
@@ -301,8 +266,7 @@
                 state: state,
                 value: tempGlucoseValue
             };
-            recordsRef.push(newRecord)
-                .catch((error) => console.error("Erro ao salvar registro: ", error));
+            recordsRef.push(newRecord).catch(err => console.error("Erro ao salvar:", err));
             recordForm.reset();
             modal.classList.remove('show');
             tempGlucoseValue = null;
@@ -321,10 +285,7 @@
         function handleFormSubmit(event) {
             event.preventDefault();
             const value = glucoseInput.value.trim();
-            if (!value) {
-                alert("Por favor, insira um valor de glicemia.");
-                return;
-            }
+            if (!value) { return; }
             tempGlucoseValue = parseFloat(value);
             modal.classList.add('show');
         }
@@ -341,10 +302,7 @@
         function exportToPdf() {
             recordsRef.once('value').then((snapshot) => {
                 const recordsData = snapshot.val();
-                if (!recordsData) {
-                    alert("Não há registros para exportar.");
-                    return;
-                }
+                if (!recordsData) { return alert("Não há registros para exportar."); }
                 const records = Object.values(recordsData).sort((a, b) => a.timestamp - b.timestamp);
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
@@ -357,11 +315,7 @@
                     const dateTime = new Date(r.timestamp).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
                     return [dateTime, r.state, r.value];
                 });
-                doc.autoTable({
-                    head: [tableColumn],
-                    body: tableRows,
-                    startY: 40
-                });
+                doc.autoTable({ head: [tableColumn], body: tableRows, startY: 40 });
                 doc.save('relatorio_glicemia.pdf');
             });
         }
@@ -375,7 +329,7 @@
         btnJejum.addEventListener('click', () => finalizeRegistration('Em Jejum'));
         btnAlimentado.addEventListener('click', () => finalizeRegistration('Alimentado'));
         modal.addEventListener('click', (event) => {
-            if (event.target === modal) {
+            if (event.target === event.currentTarget) {
                 modal.classList.remove('show');
             }
         });
@@ -384,7 +338,7 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
+                navigator.serviceWorker.register('./service-worker.js')
                     .then(reg => console.log('Service Worker registrado.', reg))
                     .catch(err => console.log('Service Worker: Erro de Registro:', err));
             });
