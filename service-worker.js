@@ -1,12 +1,14 @@
-// Define um nome e versão para o cache
-const CACHE_NAME = 'diabetes-tracker-v1';
+// Define um nome e versão para o cache. Mudar a versão (ex: v2) força a atualização.
+const CACHE_NAME = 'diabetes-tracker-v2';
 
 // Lista de arquivos essenciais para o funcionamento offline do app (o "app shell")
+// CAMINHOS CORRIGIDOS para serem relativos (usando ./)
 const URLS_TO_CACHE = [
-  '/',
-  'index.html',
-  // Se você tivesse arquivos CSS e JS separados, eles entrariam aqui.
-  // Como está tudo embutido, 'index.html' e a raiz '/' são suficientes.
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192x192.png',
+  './icon-512x512.png'
 ];
 
 // Evento de Instalação: Salva os arquivos essenciais no cache.
@@ -14,7 +16,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Cache aberto');
+        console.log('Service Worker: Cache aberto e arquivos do App Shell sendo adicionados.');
         return cache.addAll(URLS_TO_CACHE);
       })
   );
@@ -28,6 +30,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Service Worker: Limpando cache antigo:', cacheName);
             return caches.delete(cacheName);
           }
         })
