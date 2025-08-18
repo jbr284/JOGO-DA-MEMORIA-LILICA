@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhamento de Diabetes (Firebase)</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        /* O CSS permanece o mesmo */
+        :root {
+            --primary-color: #007bff; --danger-color: #dc3545; --success-color: #28a745;
+            --warning-color: #ffc107; --light-gray: #f8f9fa; --border-color: #dee2e6;
+            --text-color: #343a40; --white-color: #fff; --shadow-color: rgba(0, 0, 0, 0.1);
+            --overlay-color: rgba(0, 0, 0, 0.6);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: var(--light-gray); color: var(--text-color); display: flex; justify-content: center; padding: 20px; }
+        .main-container { width: 100%; max-width: 800px; background-color: var(--white-color); padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); }
+        header { text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+        h1 { font-size: 2rem; color: var(--primary-color); margin-bottom: 0.5rem; }
+        h2 { font-size: 1.25rem; font-weight: 400; color: var(--text-color); }
+        #live-clock { text-align: center; font-size: 1.1rem; font-weight: 500; margin-bottom: 2rem; padding: 10px; background-color: var(--light-gray); border-radius: 6px; }
+        #record-form { display: flex; gap: 10px; margin-bottom: 2rem; }
+        #glucose-value { flex-grow: 1; padding: 12px; font-size: 1rem; border: 1px solid var(--border-color); border-radius: 6px; }
+        #record-form button { padding: 12px 24px; font-size: 1rem; font-weight: 700; color: var(--white-color); background-color: var(--primary-color); border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
+        #record-form button:hover { background-color: #0056b3; }
+        .table-container { overflow-x: auto; }
+        #records-table { width: 100%; border-collapse: collapse; }
+        #records-table th, #records-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        #records-table thead th { background-color: var(--light-gray); font-weight: 700; }
+        #records-table tbody tr:hover { background-color: #e9ecef; }
+        .delete-btn { padding: 5px 10px; font-size: 0.875rem; font-weight: 700; color: var(--white-color); background-color: var(--danger-color); border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
+        .delete-btn:hover { background-color: #c82333; }
+        .table-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem; }
+        .action-btn { padding: 10px 20px; font-size: 1rem; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; transition: filter 0.2s; }
+        #export-pdf-btn { background-color: var(--success-color); color: var(--white-color); }
+        #clear-data-btn { background-color: var(--danger-color); color: var(--white-color); }
+        #export-pdf-btn:hover, #clear-data-btn:hover { filter: brightness(0.9); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--overlay-color); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal-content { background-color: var(--white-color); padding: 2rem; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: center; max-width: 400px; width: 90%; }
+        .modal-content p { font-size: 1.2rem; margin-bottom: 1.5rem; }
+        .modal-actions { display: flex; justify-content: center; gap: 1rem; }
+        .modal-actions button { padding: 10px 20px; min-width: 100px; font-size: 1rem; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; transition: filter 0.2s; }
+        .modal-actions button:hover { filter: brightness(0.9); }
+        #btn-jejum { background-color: var(--success-color); color: var(--white-color); }
+        #btn-alimentado { background-color: var(--warning-color); color: var(--text-color); }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <header>
+            <h1>Acompanhamento da variação de diabetes</h1>
+            <h2>Paciente: Eva Ortiz Rosa</h2>
+        </header>
+        <div id="live-clock"></div>
+        <form id="record-form">
+            <input type="number" id="glucose-value" placeholder="Digite o valor da glicemia" required min="0">
+            <button type="submit">Registrar</button>
+        </form>
+        <div class="table-container">
+            <table id="records-table">
+                <thead>
+                    <tr>
+                        <th>Data do registro</th>
+                        <th>Hora do registro</th>
+                        <th>Estado</th>
+                        <th>Valor da glicemia (mg/dL)</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="records-tbody"></tbody>
+            </table>
+        </div>
+        <div class="table-actions">
+            <button id="export-pdf-btn" class="action-btn">Exportar PDF</button>
+            <button id="clear-data-btn" class="action-btn">Limpar Dados</button>
+        </div>
+    </div>
+    <div id="confirmation-modal" class="modal-overlay">
+        <div class="modal-content">
+            <p>Paciente está em jejum?</p>
+            <div class="modal-actions">
+                <button id="btn-jejum">Sim</button>
+                <button id="btn-alimentado">Não</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const firebaseConfig = {
+                apiKey: "AIzaSyC-V57C7nGGLsa6j2UPmock37JZ84ZL6g0",
+                authDomain: "variacao-de-diabetes-eva-ortiz.firebaseapp.com",
+                databaseURL: "https://variacao-de-diabetes-eva-ortiz-default-rtdb.firebaseio.com/",
+                projectId: "variacao-de-diabetes-eva-ortiz",
+                storageBucket: "variacao-de-diabetes-eva-ortiz.firebasestorage.app",
+                messagingSenderId: "271754228044",
+                appId: "1:271754228044:web:12bebbf2f374673b57dfe9"
+            };
+
+            firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
+            const recordsRef = database.ref('registros');
+
+            const clockElement = document.getElementById('live-clock');
+            const recordForm = document.getElementById('record-form');
+            const glucoseInput = document.getElementById('glucose-value');
+            const tableBody = document.getElementById('records-tbody');
+            const exportPdfBtn = document.getElementById('export-pdf-btn');
+            const clearDataBtn = document.getElementById('clear-data-btn');
+            const modal = document.getElementById('confirmation-modal');
+            const btnJejum = document.getElementById('btn-jejum');
+            const btnAlimentado = document.getElementById('btn-alimentado');
+            let tempGlucoseValue = null;
+
+            function listenAndRenderTable() {
+                recordsRef.on('value', (snapshot) => {
+                    const recordsData = snapshot.val();
+                    tableBody.innerHTML = '';
+                    if (recordsData) {
+                        const records = Object.keys(recordsData).map(key => ({
+                            id: key,
+                            ...recordsData[key]
+                        }));
+                        records.sort((a, b) => a.timestamp - b.timestamp);
+                        records.forEach(record => {
+                            const row = tableBody.insertRow();
+                            row.innerHTML = `
+                                <td>${record.date}</td>
+                                <td>${record.time}</td>
+                                <td>${record.state}</td>
+                                <td>${record.value}</td>
+                                <td><button class="delete-btn" data-id="${record.id}">Excluir</button></td>
+                            `;
+                        });
+                    }
+                });
+            }
+
+            function finalizeRegistration(state) {
+                const now = new Date();
+                const newRecord = {
+                    timestamp: now.getTime(),
+                    date: now.toLocaleDateString('pt-BR'),
+                    time: now.toLocaleTimeString('pt-BR'),
+                    state: state,
+                    value: tempGlucoseValue
+                };
+                recordsRef.push(newRecord)
+                    .catch((error) => {
+                        console.error("Erro ao salvar registro: ", error);
+                        alert("Ocorreu um erro ao salvar. Verifique sua conexão e as regras de segurança do banco de dados.");
+                    });
+                recordForm.reset();
+                modal.classList.remove('show');
+                tempGlucoseValue = null;
+            }
+
+            function deleteRecord(idToDelete) {
+                database.ref('registros/' + idToDelete).remove();
+            }
+
+            function clearAllData() {
+                if (window.confirm("Tem certeza que deseja apagar TODOS os registros? Esta ação não pode ser desfeita.")) {
+                    recordsRef.remove();
+                }
+            }
+            
+            function handleFormSubmit(event) {
+                event.preventDefault();
+                const value = glucoseInput.value.trim();
+                if (!value) {
+                    alert("Por favor, insira um valor de glicemia.");
+                    return;
+                }
+                tempGlucoseValue = parseFloat(value);
+                modal.classList.add('show');
+            }
+
+            function handleTableClick(event) {
+                if (event.target.matches('.delete-btn')) {
+                    const recordId = event.target.dataset.id;
+                    if (window.confirm("Tem certeza que deseja excluir este registro?")) {
+                        deleteRecord(recordId);
+                    }
+                }
+            }
+
+            function exportToPdf() {
+                recordsRef.once('value').then((snapshot) => {
+                    const recordsData = snapshot.val();
+                    if (!recordsData) {
+                        alert("Não há registros para exportar.");
+                        return;
+                    }
+                    const records = Object.values(recordsData).sort((a,b) => a.timestamp - b.timestamp);
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    doc.setFontSize(18);
+                    doc.text("Relatório de Acompanhamento de Diabetes", 14, 22);
+                    doc.setFontSize(12);
+                    doc.text("Paciente: Eva Ortiz Rosa", 14, 30);
+                    const tableColumn = ["Data", "Hora", "Estado", "Valor (mg/dL)"];
+                    const tableRows = records.map(r => [r.date, r.time, r.state, r.value]);
+                    doc.autoTable(tableColumn, tableRows, { startY: 40 });
+                    doc.save('relatorio_glicemia_eva_ortiz_rosa.pdf');
+                });
+            }
+
+            function updateClock() {
+                const now = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                clockElement.textContent = now.toLocaleDateString('pt-BR', options);
+            }
+
+            // --- INICIALIZAÇÃO DA APLICAÇÃO ---
+            updateClock();
+            setInterval(updateClock, 1000);
+            recordForm.addEventListener('submit', handleFormSubmit);
+            tableBody.addEventListener('click', handleTableClick);
+            exportPdfBtn.addEventListener('click', exportToPdf);
+            clearDataBtn.addEventListener('click', clearAllData);
+            btnJejum.addEventListener('click', () => finalizeRegistration('Em Jejum'));
+            btnAlimentado.addEventListener('click', () => finalizeRegistration('Alimentado'));
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.classList.remove('show');
+                }
+            });
+
+            listenAndRenderTable();
+
+            // REGISTRO DO SERVICE WORKER (LOCAL CORRETO E OTIMIZADO)
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/service-worker.js')
+                        .then((registration) => {
+                            console.log('Service Worker registrado com sucesso:', registration);
+                        })
+                        .catch((error) => {
+                            console.log('Falha ao registrar o Service Worker:', error);
+                        });
+                });
+            }
+        }); // FIM DO DOMCONTENTLOADED
+    </script>
+</body>
+</html>
