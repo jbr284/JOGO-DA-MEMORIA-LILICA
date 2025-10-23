@@ -7,97 +7,97 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192.png" type="image/png">
     <meta name="theme-color" content="#16213e">
-    
+
     <style>
         :root {
             --bg-color: #1a1a2e; --card-color: #16213e; --card-flipped-color: #0f3460;
             --text-color: #e94560; --accent-color: #ffffff; --player1-color: #53a8b6; --player2-color: #e94560;
-            --card-size: 60px; 
-            --board-gap: 8px; 
+            --card-size: 60px;
+            --board-gap: 8px;
         }
         body {
             font-family: 'Arial', sans-serif; background-color: var(--bg-color); color: var(--accent-color);
             display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 10px; box-sizing: border-box;
         }
         h1 { color: var(--text-color); margin-bottom: 10px; font-size: 1.8em; }
-        .game-info { 
-            display: flex; justify-content: space-between; 
-            width: calc(6 * var(--card-size) + 5 * var(--board-gap)); 
-            max-width: 95%; 
-            margin-bottom: 15px; font-size: 1.0em; /* Reduzido para caber Vitórias */
+        .game-info {
+            display: flex; justify-content: space-between;
+            width: calc(6 * var(--card-size) + 5 * var(--board-gap));
+            max-width: 95%;
+            margin-bottom: 15px; font-size: 1.0em;
         }
-        .player-score { 
-            padding: 8px 15px; border-radius: 8px; font-weight: bold; transition: all 0.3s ease; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48%; /* Ajustado */
-            text-align: center; /* Centraliza texto */
-        } 
-        /* NOVO: Estilo para vitórias */
+        .player-score {
+            padding: 8px 15px; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48%;
+            text-align: center;
+        }
         .victories { font-size: 0.8em; opacity: 0.8; display: block; margin-top: 2px;}
 
         #player1-info { background-color: var(--player1-color); }
         #player2-info { background-color: var(--player2-color); }
         .player-score.active { box-shadow: 0 0 10px var(--accent-color); transform: scale(1.05); }
         #turn-info { width: 100%; text-align: center; font-size: 1.3em; margin-bottom: 15px; font-weight: bold; min-height: 1.5em; }
-        
-        .game-board { 
+
+        .game-board {
             display: grid;
-            grid-template-columns: repeat(6, var(--card-size)); 
-            grid-template-rows: repeat(6, var(--card-size));    
-            gap: var(--board-gap); 
-            perspective: 1000px; 
+            grid-template-columns: repeat(6, var(--card-size));
+            grid-template-rows: repeat(6, var(--card-size));
+            gap: var(--board-gap);
+            perspective: 1000px;
         }
         .card {
-            width: var(--card-size); height: var(--card-size); 
+            width: var(--card-size); height: var(--card-size);
             position: relative; transform-style: preserve-3d;
             transition: transform 0.6s; cursor: pointer;
         }
         .card.flipped, .card.matched { transform: rotateY(180deg); cursor: default; }
         .card-face {
             position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
-            border-radius: 6px; display: flex; align-items: center; justify-content: center; 
-            font-size: calc(var(--card-size) * 0.6); 
+            border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            font-size: calc(var(--card-size) * 0.6);
         }
         .card-front { background-color: var(--card-flipped-color); transform: rotateY(180deg); }
         .card-back { background-color: var(--card-color); border: 2px solid var(--text-color); }
 
-        /* NOVO: Animação de par encontrado */
         @keyframes matchAnimation {
-            0%, 100% { transform: scale(1) rotateY(180deg); box-shadow: none; } /* Mantém virada */
-            50% { transform: scale(1.15) rotateY(180deg); box-shadow: 0 0 15px yellow; } /* Aumenta e brilha */
+            0%, 100% { transform: scale(1) rotateY(180deg); box-shadow: none; }
+            50% { transform: scale(1.15) rotateY(180deg); box-shadow: 0 0 15px yellow; }
         }
         .card.play-match-animation {
             animation: matchAnimation 0.7s ease-in-out;
         }
-        
-        /* NOVO: Botão Jogar Novamente */
+
         #play-again-btn {
              margin-top: 15px; padding: 10px 20px; font-size: 1em; font-weight: bold;
-             color: var(--accent-color); background-color: var(--player1-color); /* Cor diferente */
-             border: none; border-radius: 8px; cursor: pointer; display: none; /* Começa escondido */
+             color: var(--accent-color); background-color: var(--player1-color);
+             border: none; border-radius: 8px; cursor: pointer; display: none;
         }
+        #play-again-btn:hover { background-color: #438a9a; }
 
-        #reset-button { /* Botão Voltar ao Lobby */
-            margin-top: 10px; /* Reduzido */ padding: 10px 20px; font-size: 1em; font-weight: bold;
+        #reset-button {
+            margin-top: 10px; padding: 10px 20px; font-size: 1em; font-weight: bold;
             color: var(--accent-color); background-color: var(--text-color); border: none; border-radius: 8px; cursor: pointer;
         }
+         #reset-button:hover { background-color: #c93048; }
+
         #game-id-display { font-size: 0.8em; color: var(--accent-color); margin-top: 10px; opacity: 0.7; }
     </style>
 </head>
 <body>
 
     <h1>Jogo da Memória Online</h1>
-    
+
     <div class="game-info">
-        <div id="player1-info" class="player-score">Jogador 1: 0</div> 
+        <div id="player1-info" class="player-score">Jogador 1: 0</div>
         <div id="player2-info" class="player-score">Jogador 2: 0</div>
     </div>
-    
+
     <div id="turn-info">Conectando...</div>
-    
+
     <div class="game-board" id="game-board">
         </div>
 
-    <button id="play-again-btn">Jogar Novamente</button> 
+    <button id="play-again-btn">Jogar Novamente</button>
     <button id="reset-button">Voltar ao Lobby</button>
     <div id="game-id-display"></div>
 
@@ -105,202 +105,197 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
-        // Config Firebase
-        const firebaseConfig = { /* ... (sua config aqui) ... */ };
-        let database; 
-        try { firebase.initializeApp(firebaseConfig); database = firebase.database(); console.log("Firebase inicializado."); } 
+        // *** SUA CONFIGURAÇÃO REAL DO FIREBASE ***
+        const firebaseConfig = {
+          apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
+          authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
+          databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com",
+          projectId: "jogo-da-memoria-lilica",
+          storageBucket: "jogo-da-memoria-lilica.firebasestorage.app",
+          messagingSenderId: "683788488529",
+          appId: "1:683788488529:web:727316a3e182257a2d8d70"
+        };
+        // *******************************************
+
+        let database;
+        try { firebase.initializeApp(firebaseConfig); database = firebase.database(); console.log("Firebase inicializado."); }
         catch (e) { console.error("ERRO FIREBASE:", e); alert("Erro Firebase."); throw new Error("Falha Firebase"); }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Emojis 6x6
             const emojis = [ '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦' ];
-            
-            // Seletores DOM
             const gameBoard = document.getElementById('game-board');
-            const player1InfoEl = document.getElementById('player1-info'); 
+            const player1InfoEl = document.getElementById('player1-info');
             const player2InfoEl = document.getElementById('player2-info');
             const turnInfoEl = document.getElementById('turn-info');
-            const resetButton = document.getElementById('reset-button'); // Voltar Lobby
-            const playAgainBtn = document.getElementById('play-again-btn'); // NOVO
+            const resetButton = document.getElementById('reset-button');
+            const playAgainBtn = document.getElementById('play-again-btn');
             const gameIdDisplay = document.getElementById('game-id-display');
 
-            // Variáveis de estado
-            let gameStateRef; 
-            let gameId;       
-            let playerId;     
+            let gameStateRef;
+            let gameId;
+            let playerId;
             let lockBoard = false;
             let myPlayerUUID;
-            let playerNames = { 1: "P1", 2: "P2" }; // Nomes padrão curtos
-            let currentBoardState = {}; // Guarda o estado local para animação
+            let playerNames = { 1: "P1", 2: "P2" };
+            let currentBoardState = {};
 
             // --- FUNÇÃO DE INICIALIZAÇÃO ---
-            function initGame() { /* ... (igual à versão anterior) ... */ }
+            function initGame() {
+                 const urlParams = new URLSearchParams(window.location.search); gameId = urlParams.get('game'); myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID'); if (!myPlayerUUID) { alert("Erro de sessão..."); window.location.href = 'index.html'; return; } if (!gameId) { alert("Nenhum ID de sala..."); window.location.href = 'index.html'; return; } gameStateRef = database.ref('games/' + gameId); gameStateRef.transaction(currentState => { if (currentState === null) return null; if (currentState.gameType !== 'memory') return; if (currentState.player1_uuid === myPlayerUUID) playerId = 1; else if (currentState.player2_uuid === myPlayerUUID) playerId = 2; else if (!currentState.player2_uuid) { playerId = 2; currentState.player2 = true; currentState.player2_uuid = myPlayerUUID; currentState.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || `P${playerId}`; } else return; return currentState; }, (error, committed, snapshot) => { if (error || !committed) { alert(snapshot?.val()?.gameType !== 'memory' ? "Tipo incorreto!" : (snapshot?.val()?.player2_uuid && snapshot.val().player2_uuid !== myPlayerUUID ? "Sala cheia!" : "Sala não encontrada!")); window.location.href = 'index.html'; } else { console.log("Conectado (Memória) como Jogador:", playerId); setupGameListeners(); } });
+             }
 
             // --- Função: "Ouvir" as mudanças do Jogo no Firebase ---
             function setupGameListeners() {
                 gameIdDisplay.textContent = `ID da Sala: ${gameId}`;
-                if (gameStateRef) gameStateRef.off(); 
+                if (gameStateRef) gameStateRef.off();
 
                 gameStateRef.on('value', (snapshot) => {
                     const state = snapshot.val();
-                    if (!state) { /* ... (tratamento de jogo encerrado) ... */ return; } 
+                    if (!state) { if (document.visibilityState === 'visible') { /* alert("Jogo encerrado."); window.location.href = 'index.html'; */} return; }
 
-                    // Atualiza nomes
                     playerNames[1] = state.player1_name || "P1";
                     playerNames[2] = state.player2_name || "P2";
-
-                    // Normaliza estado
                     state.flippedCards = state.flippedCards || [];
                     state.scores = state.scores || { 1: 0, 2: 0 };
-                    state.victories = state.victories || { 1: 0, 2: 0 }; // NOVO: Garante vitórias
+                    state.victories = state.victories || { 1: 0, 2: 0 };
                     state.board = state.board || {};
-                    
-                    // Compara estado antigo com novo para animação (NOVO)
-                    const oldBoardState = currentBoardState;
-                    currentBoardState = state.board; // Atualiza estado local
 
-                    updateScoreboard(state.scores, state.victories, state.currentPlayer); // Passa vitórias
-                    updateTurnInfo(state.currentPlayer, state.winner, state.player2); 
-                    renderBoard(currentBoardState, oldBoardState, state.winner); // Passa estado antigo e winner
-                    
-                    // Lógica de checar par (ajustada)
-                    // Só checa se for o jogador da vez E se o estado mudou E se tem 2 cartas viradas
-                    if (state.flippedCards.length === 2 && playerId === state.currentPlayer && !lockBoard) { 
-                        lockBoard = true; 
-                        // Delay ligeiramente maior para garantir que a segunda carta virou visualmente
-                        setTimeout(() => checkForMatch(state), 900); 
+                    const oldBoardState = currentBoardState;
+                    currentBoardState = state.board;
+
+                    updateScoreboard(state.scores, state.victories, state.currentPlayer);
+                    updateTurnInfo(state.currentPlayer, state.winner, state.player2);
+                    renderBoard(currentBoardState, oldBoardState, state.winner);
+
+                    if (state.flippedCards.length === 2 && playerId === state.currentPlayer && !lockBoard) {
+                        lockBoard = true;
+                        setTimeout(() => checkForMatch(state), 900);
                     } else if (state.flippedCards.length < 2) {
-                        lockBoard = false; // Garante que destrava se o outro jogador fez par
+                        lockBoard = false;
                     }
-                }, (error) => { /* ... (tratamento de erro do listener) ... */ });
+                }, (error) => { console.error("Erro listener:", error); alert("Erro de conexão."); });
             }
 
-            // --- Função: Renderizar o Tabuleiro (ATUALIZADA para animação) ---
+            // --- Função: Renderizar o Tabuleiro ---
             function renderBoard(newBoardState, oldBoardState, winner) {
                  gameBoard.innerHTML = '';
                  const sortedKeys = Object.keys(newBoardState).sort((a, b) => parseInt(a) - parseInt(b));
-                 
                  sortedKeys.forEach(key => {
                      const cardData = newBoardState[key];
-                     const oldCardData = oldBoardState ? oldBoardState[key] : null; // Pega dado antigo
+                     const oldCardData = oldBoardState ? oldBoardState[key] : null;
                      const cardEl = createCardElement(cardData);
-                     
-                     // Lógica da Animação (NOVO)
-                     // Se a carta AGORA está 'matched', mas ANTES não estava, toca a animação
                      if (cardData.isMatched && (!oldCardData || !oldCardData.isMatched)) {
-                          // Adiciona a classe e remove depois de um tempo
                           cardEl.classList.add('play-match-animation');
-                          setTimeout(() => cardEl.classList.remove('play-match-animation'), 700); // Duração da animação
+                          setTimeout(() => cardEl.classList.remove('play-match-animation'), 700);
                      }
-                     
                      gameBoard.appendChild(cardEl);
                  });
-                 // Mostra/Esconde botão Jogar Novamente (NOVO)
                  playAgainBtn.style.display = winner !== null ? 'block' : 'none';
             }
-            
+
             // --- Função: Criar o Elemento HTML da Carta ---
-            function createCardElement(cardData) { /* ... (igual à versão anterior) ... */ }
+            function createCardElement(cardData) {
+                const card = document.createElement('div'); card.classList.add('card'); card.dataset.id = cardData.id;
+                card.classList.toggle('flipped', cardData.isFlipped); card.classList.toggle('matched', cardData.isMatched);
+                card.innerHTML = `<div class="card-face card-front">${cardData.emoji}</div><div class="card-face card-back"></div>`;
+                if (!cardData.isMatched) { card.addEventListener('click', () => onCardClick(cardData)); } else { card.style.cursor = 'default'; }
+                return card;
+             }
 
             // --- Função: Lógica do Clique (ENVIA A JOGADA) ---
-            function onCardClick(cardData) { /* ... (igual à versão anterior) ... */ }
+            function onCardClick(cardData) {
+                if (lockBoard) return;
+                gameStateRef.transaction(currentState => {
+                     if (!currentState) return currentState;
+                     const currentFlippedCards = currentState.flippedCards || [];
+                     if (currentState.currentPlayer !== playerId || currentState.player2 === null || currentFlippedCards.length >= 2 || currentState.board[cardData.id].isFlipped || currentState.board[cardData.id].isMatched) { return; }
+                     currentState.board[cardData.id].isFlipped = true;
+                     if (!currentFlippedCards.includes(cardData.id)) { currentState.flippedCards = [...currentFlippedCards, cardData.id]; }
+                     return currentState;
+                 });
+             }
 
-            // --- Função: Verificar se é um Par (ATUALIZADA para Vitórias) ---
+            // --- Função: Verificar se é um Par ---
             function checkForMatch(state) {
-                 // A transação agora é mais complexa, atualiza vitórias se houver vencedor
                  gameStateRef.transaction(currentState => {
-                    if (!currentState) return currentState; 
-                    if (!currentState.flippedCards || currentState.flippedCards.length !== 2) return currentState; 
-
+                    if (!currentState || !currentState.flippedCards || currentState.flippedCards.length !== 2) return currentState;
                     const [id1, id2] = currentState.flippedCards;
-                    if (!currentState.board[id1] || !currentState.board[id2]) return currentState; 
+                    if (!currentState.board[id1] || !currentState.board[id2]) return currentState;
 
-                    const card1 = currentState.board[id1];
-                    const card2 = currentState.board[id2];
-                    const isMatch = card1.emoji === card2.emoji;
+                    const card1 = currentState.board[id1]; const card2 = currentState.board[id2]; const isMatch = card1.emoji === card2.emoji;
 
                     if (isMatch) {
-                        currentState.scores[currentState.currentPlayer]++;
-                        currentState.matchedPairs++;
-                        currentState.board[id1].isMatched = true;
-                        currentState.board[id2].isMatched = true;
+                        currentState.scores[currentState.currentPlayer]++; currentState.matchedPairs++;
+                        currentState.board[id1].isMatched = true; currentState.board[id2].isMatched = true;
                     } else {
                         currentState.currentPlayer = currentState.currentPlayer === 1 ? 2 : 1;
-                        currentState.board[id1].isFlipped = false;
-                        currentState.board[id2].isFlipped = false;
+                        currentState.board[id1].isFlipped = false; currentState.board[id2].isFlipped = false;
                     }
-                    
-                    currentState.flippedCards = []; 
+                    currentState.flippedCards = [];
 
-                    // Verifica fim de jogo e atualiza vitórias (NOVO)
-                    if (currentState.matchedPairs === emojis.length) { 
-                         const p1Score = currentState.scores[1];
-                         const p2Score = currentState.scores[2];
+                    if (currentState.matchedPairs === emojis.length) {
+                         const p1Score = currentState.scores[1]; const p2Score = currentState.scores[2];
                          currentState.winner = p1Score > p2Score ? 1 : (p2Score > p1Score ? 2 : 0);
-                         // Incrementa vitória se não for empate
                          if (currentState.winner !== 0) {
-                              currentState.victories = currentState.victories || { 1: 0, 2: 0 }; // Garante que existe
+                              currentState.victories = currentState.victories || { 1: 0, 2: 0 };
                               currentState.victories[currentState.winner]++;
                          }
                     }
                     return currentState;
                  });
             }
-            
-            // --- Função: Atualizar Placar (Atualizada para Vitórias) ---
+
+            // --- Função: Atualizar Placar ---
             function updateScoreboard(scores, victories, currentPlayer) {
-                // Formato: Nome (V: X) Y pts
-                player1InfoEl.textContent = `${playerNames[1]} (V:${victories[1]}) ${scores[1]} pts`; 
-                player2InfoEl.textContent = `${playerNames[2]} (V:${victories[2]}) ${scores[2]} pts`; 
-                
+                player1InfoEl.innerHTML = `${playerNames[1]} <span class="victories">(V:${victories[1]})</span> ${scores[1]} pts`;
+                player2InfoEl.innerHTML = `${playerNames[2]} <span class="victories">(V:${victories[2]})</span> ${scores[2]} pts`;
                 player1InfoEl.classList.toggle('active', currentPlayer === 1);
                 player2InfoEl.classList.toggle('active', currentPlayer === 2);
             }
-            
-            // --- Função: Atualizar Info de Turno e Fim de Jogo ---
-            function updateTurnInfo(currentPlayer, winner, player2_connected) { /* ... (igual à versão anterior) ... */ }
 
-            // --- Função: Resetar Tabuleiro para Jogar Novamente (NOVO) ---
+            // --- Função: Atualizar Info de Turno e Fim de Jogo ---
+            function updateTurnInfo(currentPlayer, winner, player2_connected) {
+                if (winner !== null) {
+                    let winnerName = winner === 1 ? playerNames[1] : (winner === 2 ? playerNames[2] : null);
+                    let winnerMessage = winnerName ? `${winnerName} Venceu!` : 'Empate!';
+                    turnInfoEl.textContent = `Fim da Rodada! ${winnerMessage}`;
+                } else {
+                    if(!player2_connected) { turnInfoEl.textContent = "Aguardando Jogador 2..."; return; }
+                    const currentPlayerName = playerNames[currentPlayer];
+                    if (playerId === currentPlayer) { turnInfoEl.textContent = `É a sua vez, ${currentPlayerName}!`; }
+                    else { turnInfoEl.textContent = `Vez de ${currentPlayerName}`; }
+                }
+            }
+
+             // --- Função: Resetar Tabuleiro para Jogar Novamente ---
             function resetBoardForNewRound() {
                  console.log("Resetando tabuleiro para nova rodada...");
                  gameStateRef.transaction(currentState => {
-                      if (!currentState) return null; // Jogo não existe mais
+                      if (!currentState) return null;
+                      if (currentState.winner === null) return currentState;
 
-                      // Só reseta se o jogo realmente acabou
-                      if (currentState.winner === null) return currentState; 
-
-                      // Embaralha novas cartas
                       const cardPairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
                       currentState.board = {};
                       cardPairs.forEach((emoji, index) => {
                           currentState.board[index] = { id: index, emoji: emoji, isFlipped: false, isMatched: false };
                       });
                       
-                      // Reseta estado da rodada
                       currentState.scores = { 1: 0, 2: 0 };
-                      currentState.flippedCards = []; 
+                      currentState.flippedCards = [];
                       currentState.matchedPairs = 0;
                       currentState.winner = null;
-                      currentState.winnerInfo = null; // Limpa info da linha vencedora
-                      // Decide quem começa a próxima rodada (ex: alterna ou perdedor começa)
-                      // Vamos alternar: Se P1 ganhou ou empatou, P2 começa. Se P2 ganhou, P1 começa.
-                      currentState.currentPlayer = (currentState.winner === 1 || currentState.winner === 0) ? 2 : 1; 
+                      currentState.winnerInfo = null;
+                      currentState.currentPlayer = (currentState.winner === 1 || currentState.winner === 0) ? 2 : 1;
 
-                      // Mantém: gameId, gameType, UUIDs, Nomes, Vitórias
-                      
                       return currentState;
                  });
             }
 
             // --- Event Listeners ---
-            resetButton.addEventListener('click', () => { /* ... (igual) ... */ });
-            
-            // NOVO Listener para Jogar Novamente
-            playAgainBtn.addEventListener('click', () => {
-                 // Idealmente, apenas um jogador (ex: P1) deveria poder iniciar o reset
-                 // Mas para simplificar, qualquer um pode clicar por enquanto.
-                 resetBoardForNewRound();
-            });
+            resetButton.addEventListener('click', () => {
+                 if (confirm('Tem certeza que deseja sair? O jogo atual será encerrado se você for o Jogador 1.')) { if (gameStateRef) gameStateRef.off(); if (playerId === 1 && gameStateRef) { gameStateRef.remove().finally(() => window.location.href = 'index.html'); } else { window.location.href = 'index.html'; } }
+             });
+            playAgainBtn.addEventListener('click', resetBoardForNewRound);
 
             // --- Inicia o Jogo ---
             initGame();
