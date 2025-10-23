@@ -52,7 +52,7 @@
             transition: background-color 0.3s;
         }
         button:hover { background-color: #c93048; }
-        button:disabled { background-color: #555; cursor: not-allowed; } /* Estilo para botão desabilitado */
+        button:disabled { background-color: #555; cursor: not-allowed; }
         .separator {
             margin: 25px 0;
             font-weight: bold;
@@ -110,9 +110,9 @@
                 sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
             }
 
-            // --- JOGADOR 1: Criar Sala (CORRIGIDO com async/await) ---
-            createBtn.addEventListener('click', async () => { // Adicionado 'async'
-                createBtn.disabled = true; // Desabilita o botão para evitar clique duplo
+            // --- JOGADOR 1: Criar Sala ---
+            createBtn.addEventListener('click', async () => { 
+                createBtn.disabled = true; 
                 createBtn.textContent = 'Criando...';
 
                 const gameId = Math.random().toString(36).substr(2, 6);
@@ -137,20 +137,18 @@
                 };
                 
                 try {
-                    // Adicionado 'await': Espera o Firebase confirmar a escrita
                     await gameStateRef.set(initialState); 
                     console.log('Sala criada no Firebase:', gameId);
-                    // Só redireciona DEPOIS que a sala foi criada com sucesso
                     window.location.href = `game.html?game=${gameId}`;
                 } catch (error) {
                     console.error("Erro ao criar sala:", error);
                     alert("Erro ao criar a sala. Tente novamente.");
-                    createBtn.disabled = false; // Reabilita o botão em caso de erro
+                    createBtn.disabled = false; 
                     createBtn.textContent = 'Criar Nova Sala';
                 }
             });
 
-            // --- JOGADOR 2: Entrar na Sala ---
+            // --- JOGADOR 2: Entrar na Sala (VERIFICAÇÃO CORRIGIDA) ---
             joinBtn.addEventListener('click', () => {
                 const gameId = gameIdInput.value.toLowerCase().trim();
                 if (!gameId) {
@@ -165,8 +163,11 @@
                 gameStateRef.once('value', (snapshot) => {
                     if (snapshot.exists()) {
                         const state = snapshot.val();
-                        // Verifica se a vaga P2 está vazia OU se quem está entrando é o P2 que já estava lá
-                        if (state.player2_uuid === null || state.player2_uuid === myPlayerUUID) { 
+                        // *** INÍCIO DA CORREÇÃO ***
+                        // Verifica se a vaga P2 está VAZIA (!state.player2_uuid inclui null E undefined)
+                        // OU se quem está entrando É o P2 que já estava lá
+                        if (!state.player2_uuid || state.player2_uuid === myPlayerUUID) { 
+                        // *** FIM DA CORREÇÃO ***
                             window.location.href = `game.html?game=${gameId}`;
                         } else {
                             alert("Esta sala já está cheia!");
