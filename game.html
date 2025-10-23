@@ -94,51 +94,68 @@
             let lockBoard = false;
             let myPlayerUUID;
 
-            // --- FUNÇÃO DE INICIALIZAÇÃO ---
+            // --- FUNÇÃO DE INICIALIZAÇÃO (LÓGICA CORRIGIDA COM TRANSAÇÃO) ---
             function initGame() {
                 const urlParams = new URLSearchParams(window.location.search);
                 gameId = urlParams.get('game');
                 
                 myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
                 if (!myPlayerUUID) {
-                    // Se não tem ID, não devia estar aqui. Volta ao Lobby.
-                    alert("Erro de sessão. Voltando ao Lobby.");
-                    window.location.href = 'index.html';
-                    return;
+                    alert("Erro de sessão. Voltando ao Lobby."); window.location.href = 'index.html'; return;
                 }
-
                 if (!gameId) {
-                    alert("Nenhum ID de sala encontrado. Voltando ao Lobby.");
-                    window.location.href = 'index.html';
-                    return;
+                    alert("Nenhum ID de sala encontrado. Voltando ao Lobby."); window.location.href = 'index.html'; return;
                 }
 
                 // Conecta-se à sala
                 gameStateRef = database.ref('games/' + gameId);
                 
-                gameStateRef.once('value', (snapshot) => {
-                    if (snapshot.exists()) {
-                        const state = snapshot.val();
-                        
-                        if (state.player1_uuid === myPlayerUUID) {
-                            playerId = 1;
-                        } else if (state.player2_uuid === myPlayerUUID) {
-                            playerId = 2;
-                        } else if (state.player2 === null) {
-                            // É o Jogador 2 se conectando
-                            playerId = 2;
-                            gameStateRef.update({ player2: true, player2_uuid: myPlayerUUID });
-                        } else {
-                            // Sala cheia
-                            alert("Esta sala está cheia!");
-                            window.location.href = 'index.html';
-                            return;
-                        }
-                        setupGameListeners(); // Conecta ao jogo
+                // Tenta entrar na sala usando uma transação para garantir atomicidade
+                gameStateRef.transaction(currentState => {
+                    if (currentState === null) {
+                        // Sala não existe mais (talvez deletada pelo P1)
+                        return null; // Aborta a transação
+                    }
+
+                    if (currentState.player1_uuid === myPlayerUUID) {
+                        // É o Jogador 1 (re)conectando
+                        playerId = 1;
+                        console.log("Jogador 1 (re)conectou.");
+                        return currentState; // Não precisa modificar nada
+                    } else if (currentState.player2_uuid === myPlayerUUID) {
+                        // É o Jogador 2 (re)conectando
+                        playerId = 2;
+                        console.log("Jogador 2 (re)conectou.");
+                        return currentState; // Não precisa modificar nada
+                    } else if (currentState.player2_uuid === null) {
+                        // É o Jogador 2 entrando pela primeira vez
+                        playerId = 2;
+                        console.log("Jogador 2 entrando e ocupando a vaga.");
+                        currentState.player2 = true;
+                        currentState.player2_uuid = myPlayerUUID;
+                        return currentState; // Retorna o estado modificado para ser salvo
                     } else {
-                        // Sala não existe
-                        alert("Sala não encontrada!");
+                        // Sala está cheia com outros jogadores
+                        console.log("Tentativa de entrar em sala cheia.");
+                        return; // Aborta a transação, indicando conflito
+                    }
+                }, (error, committed, snapshot) => {
+                    if (error) {
+                        console.error("Erro na transação:", error);
+                        alert("Erro ao tentar conectar à sala. Voltando ao Lobby.");
                         window.location.href = 'index.html';
+                    } else if (!committed) {
+                        // A transação foi abortada (sala cheia ou não existia)
+                        if (snapshot.val() === null) { // Verifica se foi porque a sala não existia
+                            alert("Sala não encontrada! Voltando ao Lobby.");
+                        } else {
+                            alert("Esta sala já está cheia!");
+                        }
+                        window.location.href = 'index.html';
+                    } else {
+                        // Transação bem-sucedida! O jogador está na sala.
+                        console.log("Conectado com sucesso como Jogador:", playerId);
+                        setupGameListeners(); // Inicia o "ouvinte" do jogo
                     }
                 });
             }
@@ -150,8 +167,11 @@
                 gameStateRef.on('value', (snapshot) => {
                     const state = snapshot.val();
                     if (!state) {
-                        alert("O jogo foi encerrado pelo outro jogador.");
-                        window.location.href = 'index.html';
+                         // Verifica se o jogo ainda existe antes de mostrar o alerta
+                        if (document.visibilityState === 'visible') { // Evita alerta se a aba estiver em background
+                           alert("O jogo foi encerrado.");
+                           window.location.href = 'index.html';
+                        }
                         return;
                     } 
 
@@ -203,66 +223,64 @@
             function onCardClick(cardData) {
                 if (lockBoard) return;
                 
-                gameStateRef.once('value', (snapshot) => {
-                    const state = snapshot.val();
-                    if (!state) return; 
-                    
-                    const stateFlippedCards = state.flippedCards || []; 
-                    
-                    if (state.currentPlayer !== playerId || 
-                        state.player2 === null || // Não deixa jogar sozinho
-                        stateFlippedCards.length === 2 ||
-                        cardData.isFlipped || 
-                        cardData.isMatched) {
-                        return;
-                    }
-                    
-                    const cardRef = gameStateRef.child('board').child(cardData.id);
-                    cardRef.update({ isFlipped: true });
-                    
-                    const newFlippedCards = [...stateFlippedCards, cardData.id];
-                    gameStateRef.update({ flippedCards: newFlippedCards });
-                });
+                // Usar transação aqui também pode evitar race conditions
+                gameStateRef.transaction(currentState => {
+                     if (!currentState) return currentState; // Jogo já foi deletado
+
+                     const currentFlippedCards = currentState.flippedCards || [];
+
+                     // Validações
+                     if (currentState.currentPlayer !== playerId || 
+                         currentState.player2 === null || // Garante que P2 entrou
+                         currentFlippedCards.length === 2 ||
+                         currentState.board[cardData.id].isFlipped || 
+                         currentState.board[cardData.id].isMatched) {
+                         return; // Aborta a transação sem modificar nada
+                     }
+
+                     // Modifica o estado DENTRO da transação
+                     currentState.board[cardData.id].isFlipped = true;
+                     currentState.flippedCards = [...currentFlippedCards, cardData.id];
+                     
+                     return currentState; // Retorna o estado modificado
+                 });
             }
 
             // --- Função: Verificar se é um Par (ATUALIZA O JOGO) ---
             function checkForMatch(state) {
-                if (!state.flippedCards || state.flippedCards.length < 2) return; 
+                 // Usa transação para garantir consistência
+                 gameStateRef.transaction(currentState => {
+                    if (!currentState) return currentState; // Jogo deletado
+                    // Verifica se o estado ainda corresponde ao que causou a chamada (evita processar jogada antiga)
+                    if (!currentState.flippedCards || currentState.flippedCards.length !== 2) return currentState; 
 
-                const [id1, id2] = state.flippedCards;
-                if (!state.board[id1] || !state.board[id2]) return; 
-                
-                const card1 = state.board[id1];
-                const card2 = state.board[id2];
-                
-                const isMatch = card1.emoji === card2.emoji;
-                
-                if (isMatch) {
-                    const newScore = state.scores[state.currentPlayer] + 1;
-                    const newMatchedPairs = state.matchedPairs + 1;
-                    
-                    let updates = {};
-                    updates[`scores/${state.currentPlayer}`] = newScore;
-                    updates['matchedPairs'] = newMatchedPairs;
-                    updates['flippedCards'] = []; 
-                    updates[`board/${id1}/isMatched`] = true;
-                    updates[`board/${id2}/isMatched`] = true;
-                    
-                    if (newMatchedPairs === emojis.length) {
-                        const winner = state.scores[1] > state.scores[2] ? 1 : (state.scores[2] > state.scores[1] ? 2 : 0);
-                        updates['winner'] = winner;
+                    const [id1, id2] = currentState.flippedCards;
+                    if (!currentState.board[id1] || !currentState.board[id2]) return currentState;
+
+                    const card1 = currentState.board[id1];
+                    const card2 = currentState.board[id2];
+                    const isMatch = card1.emoji === card2.emoji;
+
+                    if (isMatch) {
+                        currentState.scores[currentState.currentPlayer]++;
+                        currentState.matchedPairs++;
+                        currentState.board[id1].isMatched = true;
+                        currentState.board[id2].isMatched = true;
+                        currentState.flippedCards = []; // Reseta aqui dentro
+
+                        if (currentState.matchedPairs === emojis.length) {
+                             const p1Score = currentState.scores[1];
+                             const p2Score = currentState.scores[2];
+                             currentState.winner = p1Score > p2Score ? 1 : (p2Score > p1Score ? 2 : 0);
+                        }
+                    } else {
+                        currentState.currentPlayer = currentState.currentPlayer === 1 ? 2 : 1;
+                        currentState.board[id1].isFlipped = false;
+                        currentState.board[id2].isFlipped = false;
+                        currentState.flippedCards = []; // Reseta aqui dentro
                     }
-                    gameStateRef.update(updates);
-
-                } else {
-                    const nextPlayer = state.currentPlayer === 1 ? 2 : 1;
-                    let updates = {};
-                    updates['currentPlayer'] = nextPlayer;
-                    updates['flippedCards'] = []; 
-                    updates[`board/${id1}/isFlipped`] = false;
-                    updates[`board/${id2}/isFlipped`] = false;
-                    gameStateRef.update(updates);
-                }
+                    return currentState;
+                 });
             }
             
             // --- Função: Atualizar Placar e Turno na Tela ---
@@ -301,13 +319,13 @@
                 }
             }
 
-            // --- Event Listeners (ATUALIZADO) ---
+            // --- Event Listeners ---
             resetButton.addEventListener('click', () => {
-                if (confirm('Tem certeza que deseja sair? O jogo será encerrado.')) {
-                    if (playerId === 1) { // Só o P1 pode deletar a sala
+                if (confirm('Tem certeza que deseja sair? O jogo atual será encerrado se você for o Jogador 1.')) {
+                    if (playerId === 1 && gameStateRef) { // Só o P1 pode deletar a sala
                         gameStateRef.remove();
                     }
-                    window.location.href = 'index.html';
+                    window.location.href = 'index.html'; // Volta para o Lobby
                 }
             });
 
