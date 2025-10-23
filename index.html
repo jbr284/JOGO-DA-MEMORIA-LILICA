@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo da Memória - Lobby</title> <link rel="manifest" href="manifest.json">
+    <title>Jogos Online - Lobby</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192.png" type="image/png">
     <meta name="theme-color" content="#16213e">
     <style>
-        /* CSS (sem alterações significativas, apenas removemos a parte de seleção de jogo se houvesse algo específico) */
         :root {
             --bg-color: #1a1a2e; --card-color: #16213e; --text-color: #e94560; --accent-color: #ffffff;
         }
@@ -25,7 +25,7 @@
             max-width: 450px;
         }
         h1 { color: var(--text-color); margin-top: 0; margin-bottom: 25px; }
-        .form-group { margin-bottom: 20px; } /* Aumentado um pouco o espaço */
+        .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
         .form-group input[type="text"] {
             width: 100%;
@@ -55,7 +55,6 @@
         button:hover { background-color: #c93048; }
         button:disabled { background-color: #555; cursor: not-allowed; }
         .separator { margin: 25px 0; font-weight: bold; color: var(--accent-color); opacity: 0.6; }
-        /* Removido CSS de .game-selection */
          @media (max-width: 480px) {
             .lobby-container { padding: 20px; }
             h1 { font-size: 1.8em; }
@@ -65,7 +64,9 @@
 <body>
 
     <div class="lobby-container">
-        <h1>Jogo da Memória Online</h1> <div class="form-group">
+        <h1>Jogo da Memória Online</h1>
+
+        <div class="form-group">
             <label for="player-name-input">Seu Nome</label>
             <input type="text" id="player-name-input" placeholder="Digite seu nome aqui">
         </div>
@@ -106,12 +107,12 @@
             const createBtn = document.getElementById('create-game-btn');
             const joinBtn = document.getElementById('join-game-btn');
             const gameIdInput = document.getElementById('game-id-input');
-            const playerNameInput = document.getElementById('player-name-input'); 
-            const memoryEmojis = [ // Lista para o jogo da memória 6x6
-                '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', 
+            const playerNameInput = document.getElementById('player-name-input');
+            const memoryEmojis = [
+                '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼',
                 '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔',
-                '🐧', '🐦' 
-            ]; 
+                '🐧', '🐦'
+            ];
 
             playerNameInput.value = sessionStorage.getItem('jogoMemoriaPlayerName') || '';
 
@@ -132,59 +133,55 @@
                 return name;
             }
 
-            // --- JOGADOR 1: Criar Sala (Simplificado) ---
-            createBtn.addEventListener('click', async () => { 
-                const playerName = getPlayerName(); 
-                if (!playerName) return; 
+            // --- JOGADOR 1: Criar Sala ---
+            createBtn.addEventListener('click', async () => {
+                const playerName = getPlayerName();
+                if (!playerName) return;
 
-                createBtn.disabled = true; 
+                createBtn.disabled = true;
                 createBtn.textContent = 'Criando...';
 
                 const gameId = Math.random().toString(36).substr(2, 6);
                 const gameStateRef = database.ref('games/' + gameId);
-                
-                // Define o estado inicial APENAS para o Jogo da Memória
-                const cardPairs = [...memoryEmojis, ...memoryEmojis].sort(() => 0.5 - Math.random()); 
+
+                const cardPairs = [...memoryEmojis, ...memoryEmojis].sort(() => 0.5 - Math.random());
                 const initialBoard = {};
-                cardPairs.forEach((emoji, index) => { 
+                cardPairs.forEach((emoji, index) => {
                     initialBoard[index] = { id: index, emoji: emoji, isFlipped: false, isMatched: false };
                 });
-                
+
                 const initialState = {
                     gameId: gameId,
-                    gameType: 'memory', // Define o tipo como 'memory'
+                    gameType: 'memory',
                     player1_uuid: myPlayerUUID,
-                    player1_name: playerName, 
+                    player1_name: playerName,
                     player2_uuid: null,
-                    player2_name: null,       
+                    player2_name: null,
                     currentPlayer: 1,
                     winner: null,
-                    // Estado específico do Jogo da Memória
+                    victories: { 1: 0, 2: 0 }, // <<<< GARANTE QUE VITÓRIAS SÃO INICIALIZADAS ****
                     board: initialBoard,
                     scores: { 1: 0, 2: 0 },
-                    flippedCards: [], 
+                    flippedCards: [],
                     matchedPairs: 0
                 };
-                
+
                 try {
-                    await gameStateRef.set(initialState); 
+                    await gameStateRef.set(initialState);
                     console.log(`Sala 'memory' criada:`, gameId);
-                    
-                    // Redireciona SEMPRE para game.html
-                    window.location.href = `game.html?game=${gameId}`; 
-                    
+                    window.location.href = `game.html?game=${gameId}`;
                 } catch (error) {
                     console.error("Erro ao criar sala:", error);
                     alert("Erro ao criar a sala. Tente novamente.");
-                    createBtn.disabled = false; 
+                    createBtn.disabled = false;
                     createBtn.textContent = 'Criar Nova Sala';
                 }
             });
 
-            // --- JOGADOR 2: Entrar na Sala (Simplificado) ---
+            // --- JOGADOR 2: Entrar na Sala ---
             joinBtn.addEventListener('click', () => {
-                const playerName = getPlayerName(); 
-                if (!playerName) return; 
+                const playerName = getPlayerName();
+                if (!playerName) return;
 
                 const gameId = gameIdInput.value.toLowerCase().trim();
                 if (!gameId) {
@@ -195,48 +192,30 @@
                 joinBtn.disabled = true;
                 joinBtn.textContent = 'Entrando...';
                 const gameStateRef = database.ref('games/' + gameId);
-                
+
                 gameStateRef.once('value', (snapshot) => {
                     if (snapshot.exists()) {
                         const state = snapshot.val();
-
-                        // Verifica se é uma sala de Jogo da Memória
                         if (state.gameType !== 'memory') {
                             alert("O ID inserido não é de uma sala de Jogo da Memória!");
-                            joinBtn.disabled = false;
-                            joinBtn.textContent = 'Entrar na Sala';
-                            return;
+                            joinBtn.disabled = false; joinBtn.textContent = 'Entrar na Sala'; return;
                         }
-                        
-                        // Verifica se a vaga P2 está vazia OU se quem está entrando é o P2 que já estava lá
-                        if (!state.player2_uuid || state.player2_uuid === myPlayerUUID) { 
-                            if (!state.player2_uuid) {
-                                // Atualiza o nome do P2 apenas se estiver entrando pela primeira vez
-                                gameStateRef.update({ player2_name: playerName }); 
-                            }
-                            // Redireciona SEMPRE para game.html
-                            window.location.href = `game.html?game=${gameId}`; 
+                        if (!state.player2_uuid || state.player2_uuid === myPlayerUUID) {
+                            if (!state.player2_uuid) { gameStateRef.update({ player2_name: playerName }); }
+                            window.location.href = `game.html?game=${gameId}`;
                         } else {
                             alert("Esta sala já está cheia!");
-                            joinBtn.disabled = false;
-                            joinBtn.textContent = 'Entrar na Sala';
+                            joinBtn.disabled = false; joinBtn.textContent = 'Entrar na Sala';
                         }
                     } else {
                         alert("Sala não encontrada!");
-                        joinBtn.disabled = false;
-                        joinBtn.textContent = 'Entrar na Sala';
+                        joinBtn.disabled = false; joinBtn.textContent = 'Entrar na Sala';
                     }
                 });
             });
-            
+
             // --- Registro do Service Worker ---
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('sw.js')
-                        .then(registration => console.log('SW (Lobby) registrado:', registration.scope))
-                        .catch(error => console.log('Erro ao registrar SW:', error));
-                });
-            }
+            if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg=>console.log('SW reg:', reg.scope)).catch(err=>console.log('SW error:', err)); }); }
         });
     </script>
 </body>
