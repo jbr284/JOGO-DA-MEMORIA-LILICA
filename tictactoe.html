@@ -3,135 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogos Online - Lobby</title> <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icons/icon-192.png" type="image/png">
+    <title>Jogo da Velha (Online)</title>
+    <link rel="manifest" href="manifest.json"> 
+    <link rel="icon" href="icons/icon-192.png" type="image/png"> 
     <meta name="theme-color" content="#16213e">
+    
     <style>
         :root {
-            --bg-color: #1a1a2e; --card-color: #16213e; --text-color: #e94560; --accent-color: #ffffff;
+            --bg-color: #1a1a2e; --board-bg-color: #16213e; --cell-bg-color: #0f3460;
+            --text-color: #e94560; --accent-color: #ffffff; --player1-color: #53a8b6; --player2-color: #e94560;
+            --win-line-color: #f5f542;
         }
         body {
             font-family: 'Arial', sans-serif; background-color: var(--bg-color); color: var(--accent-color);
-            display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0;
         }
-        .lobby-container {
-            background-color: var(--card-color);
-            padding: 30px 40px; /* Reduzido padding vertical */
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-            text-align: center;
-            width: 90%;
-            max-width: 450px; /* Aumentado um pouco */
+        h1 { color: var(--text-color); margin-bottom: 10px; }
+        .game-info { display: flex; justify-content: space-between; width: 300px; margin-bottom: 20px; font-size: 1.1em; /* Ajustado */ }
+        .player-score { 
+            padding: 8px 15px; border-radius: 8px; font-weight: bold; transition: all 0.3s ease; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; /* Evita que nomes longos quebrem o layout */
         }
-        h1 { color: var(--text-color); margin-top: 0; margin-bottom: 25px; } /* Ajustado margin */
-        .form-group { margin-bottom: 15px; } /* Reduzido margin */
-        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .form-group input[type="text"] { /* Específico para o input de ID */
-            width: 100%;
-            padding: 12px;
-            font-size: 1.2em;
-            text-align: center;
-            background-color: var(--bg-color);
-            border: 2px solid var(--text-color);
-            color: var(--accent-color);
-            border-radius: 8px;
-            box-sizing: border-box;
-            text-transform: lowercase;
+        #player1-info { background-color: var(--player1-color); } /* ID atualizado */
+        #player2-info { background-color: var(--player2-color); } /* ID atualizado */
+        .player-score.active { box-shadow: 0 0 15px var(--accent-color); transform: scale(1.05); }
+        #turn-info { width: 100%; text-align: center; font-size: 1.5em; margin-bottom: 20px; font-weight: bold; min-height: 1.5em; }
+        
+        .game-board {
+            display: grid; grid-template-columns: repeat(3, 100px); grid-template-rows: repeat(3, 100px);
+            gap: 5px; background-color: var(--board-bg-color); padding: 10px; border-radius: 10px; position: relative; 
         }
-        button {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: var(--accent-color);
-            background-color: var(--text-color);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-top: 5px; /* Adicionado espaço */
+        .cell {
+            background-color: var(--cell-bg-color); border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-size: 60px; font-weight: bold; cursor: pointer; transition: background-color 0.3s;
         }
-        button:hover { background-color: #c93048; }
-        button:disabled { background-color: #555; cursor: not-allowed; }
-        .separator {
-            margin: 20px 0; /* Reduzido margin */
-            font-weight: bold;
-            color: var(--accent-color);
-            opacity: 0.6;
+        .cell:not(.X):not(.O):hover { background-color: #1f4a81; } /* Só permite hover em células vazias */
+        .cell.X { color: var(--player1-color); cursor: default; }
+        .cell.O { color: var(--player2-color); cursor: default; }
+        
+        .win-line { position: absolute; background-color: var(--win-line-color); border-radius: 5px; box-shadow: 0 0 10px var(--win-line-color); }
+
+        #reset-button {
+            margin-top: 25px; padding: 12px 25px; font-size: 1em; font-weight: bold;
+            color: var(--accent-color); background-color: var(--text-color); border: none; border-radius: 8px; cursor: pointer;
         }
-        /* Estilos para a seleção de jogo (NOVO) */
-        .game-selection {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-        }
-        .game-selection legend {
-            font-weight: bold;
-            color: var(--accent-color);
-            margin-bottom: 10px;
-            font-size: 1.1em;
-            text-align: left;
-        }
-        .game-options {
-            display: flex;
-            justify-content: space-around;
-        }
-        .game-options label {
-            cursor: pointer;
-            padding: 8px 15px;
-            border-radius: 6px;
-            transition: background-color 0.3s;
-        }
-        .game-options input[type="radio"] {
-            margin-right: 8px;
-            transform: scale(1.1);
-        }
-         .game-options input[type="radio"]:checked + label {
-            background-color: var(--text-color);
-            color: var(--accent-color);
-         }
-         /* Esconde o radio button original */
-         .game-options input[type="radio"] {
-           position: absolute;
-           opacity: 0;
-           width: 0;
-           height: 0;
-         }
-         .game-options label:hover {
-             background-color: rgba(233, 69, 96, 0.3);
-         }
+        #game-id-display { font-size: 0.9em; color: var(--accent-color); margin-top: 15px; opacity: 0.7; }
     </style>
 </head>
 <body>
 
-    <div class="lobby-container">
-        <h1>Jogos Online</h1> <fieldset class="game-selection">
-            <legend>Escolha o Jogo:</legend>
-            <div class="game-options">
-                <div>
-                    <input type="radio" id="game-memory" name="game_type" value="memory" checked>
-                    <label for="game-memory">Jogo da Memória</label>
-                </div>
-                <div>
-                    <input type="radio" id="game-tictactoe" name="game_type" value="tictactoe">
-                    <label for="game-tictactoe">Jogo da Velha</label>
-                </div>
-            </div>
-        </fieldset>
-        
-        <div class="form-group">
-            <button id="create-game-btn">Criar Nova Sala</button>
-        </div>
-
-        <div class="separator">OU</div>
-
-        <div class="form-group">
-            <label for="game-id-input">Digite o ID da Sala</label>
-            <input type="text" id="game-id-input" placeholder="ex: foxyz">
-        </div>
-        <button id="join-game-btn">Entrar na Sala</button>
+    <h1>Jogo da Velha Online</h1>
+    
+    <div class="game-info">
+        <div id="player1-info" class="player-score">X (P1): 0</div> 
+        <div id="player2-info" class="player-score">O (P2): 0</div>
     </div>
+    
+    <div id="turn-info">Conectando...</div>
+    
+    <div class="game-board" id="game-board">
+        </div>
+
+    <button id="reset-button">Voltar ao Lobby</button>
+    <div id="game-id-display"></div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -153,111 +87,255 @@
         const database = firebase.database();
 
         document.addEventListener('DOMContentLoaded', () => {
-            const createBtn = document.getElementById('create-game-btn');
-            const joinBtn = document.getElementById('join-game-btn');
-            const gameIdInput = document.getElementById('game-id-input');
-            const memoryEmojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼']; // Mantém a lista aqui por enquanto
+            const gameBoard = document.getElementById('game-board');
+            // Seletores atualizados
+            const player1InfoEl = document.getElementById('player1-info'); 
+            const player2InfoEl = document.getElementById('player2-info');
+            const turnInfoEl = document.getElementById('turn-info');
+            const resetButton = document.getElementById('reset-button');
+            const gameIdDisplay = document.getElementById('game-id-display');
 
-            let myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
-            if (!myPlayerUUID) {
-                myPlayerUUID = Math.random().toString(36).substr(2, 9);
-                sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
-            }
+            let gameStateRef; 
+            let gameId;       
+            let playerId;     // Será 1 (X) ou 2 (O)
+            let myPlayerUUID;
+            let playerNames = { 1: "Jogador 1", 2: "Jogador 2" }; // Nomes padrão
 
-            // --- JOGADOR 1: Criar Sala (Atualizado) ---
-            createBtn.addEventListener('click', async () => { 
-                createBtn.disabled = true; 
-                createBtn.textContent = 'Criando...';
-
-                // Lê qual jogo foi selecionado (NOVO)
-                const selectedGameType = document.querySelector('input[name="game_type"]:checked').value;
-                const gameId = Math.random().toString(36).substr(2, 6);
-                const gameStateRef = database.ref('games/' + gameId);
+            // --- FUNÇÃO DE INICIALIZAÇÃO ---
+            function initGame() {
+                const urlParams = new URLSearchParams(window.location.search);
+                gameId = urlParams.get('game');
                 
-                let initialState = {
-                    gameId: gameId,
-                    gameType: selectedGameType, // Salva o tipo de jogo (NOVO)
-                    player1_uuid: myPlayerUUID,
-                    player2_uuid: null,
-                    currentPlayer: 1,
-                    winner: null
-                    // Estado específico do jogo será adicionado abaixo
-                };
-
-                // Adiciona o estado inicial específico de cada jogo
-                if (selectedGameType === 'memory') {
-                    const cardPairs = [...memoryEmojis, ...memoryEmojis].sort(() => 0.5 - Math.random());
-                    initialState.board = {};
-                    cardPairs.forEach((emoji, index) => {
-                        initialState.board[index] = { id: index, emoji: emoji, isFlipped: false, isMatched: false };
-                    });
-                    initialState.scores = { 1: 0, 2: 0 };
-                    initialState.flippedCards = []; 
-                    initialState.matchedPairs = 0;
-                } else if (selectedGameType === 'tictactoe') {
-                    // Estado inicial do Jogo da Velha (9 células vazias)
-                    initialState.board = Array(9).fill(null); 
-                    initialState.scores = { 1: 0, 2: 0, ties: 0 }; // Pode incluir empates
+                myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
+                if (!myPlayerUUID) {
+                    alert("Erro de sessão. Voltando ao Lobby."); window.location.href = 'index.html'; return;
                 }
-                
-                try {
-                    await gameStateRef.set(initialState); 
-                    console.log(`Sala ${selectedGameType} criada:`, gameId);
-                    
-                    // Redireciona para a página correta (NOVO)
-                    const gamePage = selectedGameType === 'memory' ? 'game.html' : 'tictactoe.html';
-                    window.location.href = `${gamePage}?game=${gameId}`;
-                    
-                } catch (error) {
-                    console.error("Erro ao criar sala:", error);
-                    alert("Erro ao criar a sala. Tente novamente.");
-                    createBtn.disabled = false; 
-                    createBtn.textContent = 'Criar Nova Sala';
-                }
-            });
-
-            // --- JOGADOR 2: Entrar na Sala (Atualizado) ---
-            joinBtn.addEventListener('click', () => {
-                const gameId = gameIdInput.value.toLowerCase().trim();
                 if (!gameId) {
-                    alert("Por favor, digite um ID de sala.");
-                    return;
+                    alert("Nenhum ID de sala encontrado. Voltando ao Lobby."); window.location.href = 'index.html'; return;
                 }
 
-                joinBtn.disabled = true;
-                joinBtn.textContent = 'Entrando...';
-                const gameStateRef = database.ref('games/' + gameId);
+                gameStateRef = database.ref('games/' + gameId);
                 
-                gameStateRef.once('value', (snapshot) => {
-                    if (snapshot.exists()) {
-                        const state = snapshot.val();
-                        
-                        // Verifica se a vaga P2 está vazia OU se quem está entrando é o P2 que já estava lá
-                        if (!state.player2_uuid || state.player2_uuid === myPlayerUUID) { 
-                            // Redireciona para a página correta com base no tipo de jogo (NOVO)
-                            const gamePage = state.gameType === 'memory' ? 'game.html' : 'tictactoe.html';
-                             window.location.href = `${gamePage}?game=${gameId}`;
-                        } else {
-                            alert("Esta sala já está cheia!");
-                            joinBtn.disabled = false;
-                            joinBtn.textContent = 'Entrar na Sala';
-                        }
+                gameStateRef.transaction(currentState => {
+                    if (currentState === null) return null; 
+
+                    if (currentState.gameType !== 'tictactoe') return; // Aborta
+
+                    if (currentState.player1_uuid === myPlayerUUID) {
+                        playerId = 1;
+                    } else if (currentState.player2_uuid === myPlayerUUID) {
+                        playerId = 2;
+                    } else if (!currentState.player2_uuid) { 
+                        playerId = 2;
+                        // currentState.player2 = true; // Não precisa mais disso
+                        currentState.player2_uuid = myPlayerUUID;
+                        // Pega o nome salvo no Lobby e salva no Firebase (NOVO)
+                        currentState.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || `Jogador ${playerId}`; 
                     } else {
-                        alert("Sala não encontrada!");
-                        joinBtn.disabled = false;
-                        joinBtn.textContent = 'Entrar na Sala';
+                        return; // Sala cheia
+                    }
+                    return currentState; 
+                }, (error, committed, snapshot) => {
+                    if (error || !committed) {
+                         alert(snapshot?.val()?.gameType !== 'tictactoe' ? 
+                              "Tipo de jogo incorreto!" : 
+                              (snapshot?.val()?.player2_uuid ? "Sala cheia!" : "Sala não encontrada ou erro!"));
+                        window.location.href = 'index.html';
+                    } else {
+                        console.log("Conectado (Jogo da Velha) como Jogador:", playerId);
+                        setupGameListeners(); 
                     }
                 });
-            });
+            }
             
-            // --- Registro do Service Worker ---
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('sw.js')
-                        .then(registration => console.log('SW (Lobby) registrado:', registration.scope))
-                        .catch(error => console.log('Erro ao registrar SW:', error));
+            // --- Função: "Ouvir" as mudanças do Jogo no Firebase ---
+            function setupGameListeners() {
+                gameIdDisplay.textContent = `ID da Sala: ${gameId}`;
+                
+                gameStateRef.on('value', (snapshot) => {
+                    const state = snapshot.val();
+                    if (!state) {
+                        if (document.visibilityState === 'visible') { 
+                           alert("O jogo foi encerrado.");
+                           window.location.href = 'index.html';
+                        }
+                        return;
+                    } 
+
+                    // Atualiza nomes (NOVO)
+                    playerNames[1] = state.player1_name || "Jogador 1";
+                    playerNames[2] = state.player2_name || "Jogador 2";
+
+                    state.board = state.board || Array(9).fill(null);
+                    state.scores = state.scores || { 1: 0, 2: 0, ties: 0 };
+                    
+                    updateScoreboard(state.scores);
+                    updateTurnInfo(state.currentPlayer, state.winner, state.player2_uuid);
+                    renderBoard(state.board, state.winnerInfo); // Passa winnerInfo
                 });
             }
+
+            // --- Função: Renderizar o Tabuleiro ---
+            function renderBoard(boardState, winnerInfo) {
+                gameBoard.innerHTML = ''; 
+                const oldWinLine = gameBoard.querySelector('.win-line');
+                if (oldWinLine) oldWinLine.remove();
+
+                boardState.forEach((cellValue, index) => {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.index = index; 
+                    
+                    if (cellValue) {
+                        cell.textContent = cellValue; 
+                        cell.classList.add(cellValue);
+                        cell.style.cursor = 'default'; // Ocupado, não clicável
+                    } else if (winnerInfo === undefined || winnerInfo === null) { // Só add listener se jogo não acabou
+                        cell.addEventListener('click', () => onCellClick(index));
+                    } else {
+                         cell.style.cursor = 'default'; 
+                    }
+                    gameBoard.appendChild(cell);
+                });
+
+                if (winnerInfo) {
+                    drawWinLine(winnerInfo);
+                }
+            }
+            
+            // --- Função: Lógica do Clique na Célula (ENVIA A JOGADA) ---
+            function onCellClick(index) {
+                gameStateRef.transaction(currentState => {
+                     if (!currentState) return currentState; 
+
+                     if (currentState.winner !== null ||                
+                         currentState.currentPlayer !== playerId ||    
+                         currentState.player2_uuid === null ||       
+                         currentState.board[index] !== null) {     
+                         return; // Aborta
+                     }
+
+                     currentState.board[index] = playerId === 1 ? 'X' : 'O'; 
+                     
+                     const winnerCheck = checkForWinner(currentState.board); // Renomeado para evitar conflito
+                     if (winnerCheck) {
+                         currentState.winner = winnerCheck.winner; 
+                         currentState.winnerInfo = winnerCheck;   
+                         if (winnerCheck.winner === 'X') currentState.scores[1]++;
+                         else if (winnerCheck.winner === 'O') currentState.scores[2]++;
+                         else currentState.scores.ties++; 
+                     } else {
+                         currentState.currentPlayer = currentState.currentPlayer === 1 ? 2 : 1;
+                     }
+                     
+                     return currentState; 
+                 });
+            }
+
+            // --- Função: Verificar Vitória ou Empate ---
+            function checkForWinner(board) {
+                const winningCombinations = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]            
+                ];
+                for (let i = 0; i < winningCombinations.length; i++) {
+                    const [a, b, c] = winningCombinations[i];
+                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                        return { winner: board[a], combination: winningCombinations[i] }; // Retorna 'X' ou 'O' e a combinação
+                    }
+                }
+                if (board.every(cell => cell !== null)) return { winner: 'T' }; // Empate
+                return null; // Ninguém ganhou ainda
+            }
+            
+            // --- Função: Desenha a linha de vitória ---
+            function drawWinLine(winnerInfo) {
+                if (!winnerInfo || !winnerInfo.combination) return;
+
+                const line = document.createElement('div');
+                line.classList.add('win-line');
+                const boardRect = gameBoard.getBoundingClientRect();
+                const cellElements = gameBoard.querySelectorAll('.cell');
+                const [start, middle, end] = winnerInfo.combination; // Precisa do 'middle' para cálculo correto
+                const startRect = cellElements[start].getBoundingClientRect();
+                const endRect = cellElements[end].getBoundingClientRect();
+                 const middleRect = cellElements[middle].getBoundingClientRect(); // Pega o do meio
+
+                // Calcula posições relativas ao tabuleiro
+                const startX = startRect.left + startRect.width / 2 - boardRect.left;
+                const startY = startRect.top + startRect.height / 2 - boardRect.top;
+                const endX = endRect.left + endRect.width / 2 - boardRect.left;
+                const endY = endRect.top + endRect.height / 2 - boardRect.top;
+
+                const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+                const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) + (startRect.width * 0.8); // Aumenta um pouco
+
+                line.style.width = `${length}px`;
+                line.style.height = '8px'; 
+                
+                 // Posiciona a linha no centro da célula do meio para centralizar corretamente
+                 const middleX = middleRect.left + middleRect.width / 2 - boardRect.left;
+                 const middleY = middleRect.top + middleRect.height / 2 - boardRect.top;
+
+                 line.style.top = `${middleY}px`;
+                 line.style.left = `${middleX}px`;
+                 line.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`; // Centraliza e rotaciona
+                 line.style.transformOrigin = 'center center';
+
+
+                gameBoard.appendChild(line);
+            }
+
+            
+            // --- Função: Atualizar Placar (Atualizada) ---
+            function updateScoreboard(scores) {
+                // Usa os nomes dos jogadores lidos do Firebase
+                player1InfoEl.textContent = `${playerNames[1]} (X): ${scores[1]}`; 
+                player2InfoEl.textContent = `${playerNames[2]} (O): ${scores[2]}`;
+            }
+            
+            // --- Função: Atualizar Info de Turno e Fim de Jogo (Atualizada) ---
+            function updateTurnInfo(currentPlayer, winner, player2_connected) {
+                player1InfoEl.classList.remove('active');
+                player2InfoEl.classList.remove('active');
+
+                if (winner !== null) {
+                    let winnerName = winner === 'X' ? playerNames[1] : (winner === 'O' ? playerNames[2] : null);
+                    let winnerMessage = winnerName ? `${winnerName} Venceu!` : 'Empate!';
+                    turnInfoEl.textContent = `Fim de Jogo! ${winnerMessage}`;
+                } else {
+                    if(!player2_connected) { // Usa _uuid aqui
+                         turnInfoEl.textContent = "Aguardando Jogador 2...";
+                         return;
+                    }
+                    
+                    const currentPlayerName = playerNames[currentPlayer]; // Usa nome
+                    const marker = currentPlayer === 1 ? 'X' : 'O';
+                    if (playerId === currentPlayer) {
+                        turnInfoEl.textContent = `É a sua vez, ${currentPlayerName} (${marker})!`;
+                    } else {
+                        turnInfoEl.textContent = `Vez de ${currentPlayerName} (${marker})`;
+                    }
+                    // Adiciona classe ativa ao placar
+                    if (currentPlayer === 1) player1InfoEl.classList.add('active');
+                    else player2InfoEl.classList.add('active');
+                }
+            }
+
+            // --- Event Listeners ---
+            resetButton.addEventListener('click', () => {
+                if (confirm('Tem certeza que deseja sair? O jogo atual será encerrado se você for o Jogador 1.')) {
+                    if (gameStateRef) gameStateRef.off(); 
+                    if (playerId === 1 && gameStateRef) { 
+                        gameStateRef.remove()
+                            .finally(() => window.location.href = 'index.html');
+                    } else {
+                        window.location.href = 'index.html'; 
+                    }
+                }
+            });
+
+            // --- Inicia o Jogo ---
+            initGame();
         });
     </script>
 </body>
