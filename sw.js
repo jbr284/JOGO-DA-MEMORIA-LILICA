@@ -1,7 +1,8 @@
-const CACHE_NAME = 'jogo-memoria-cache-v1';
+const CACHE_NAME = 'jogo-memoria-cache-v2'; // Mudei a versão para forçar a atualização
 const URLS_TO_CACHE = [
   '/',
-  'index.html',
+  'index.html', // A página do Lobby
+  'game.html',  // A página do Jogo
   'manifest.json',
   'icons/icon-192.png',
   'icons/icon-512.png',
@@ -41,25 +42,19 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Se o recurso está no cache, retorna ele
         if (response) {
           return response;
         }
-
-        // Se não, busca na rede, retorna e adiciona ao cache
         return fetch(event.request).then(
           (networkResponse) => {
-            // Verifica se a resposta é válida
             if (!networkResponse || networkResponse.status !== 200 || (networkResponse.type !== 'basic' && networkResponse.type !== 'cors')) {
               return networkResponse;
             }
-
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME)
               .then((cache) => {
                 cache.put(event.request, responseToCache);
               });
-
             return networkResponse;
           }
         );
