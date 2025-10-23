@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogos Online - Lobby</title> <link rel="manifest" href="manifest.json">
+    <title>Jogos Online - Lobby</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192.png" type="image/png">
     <meta name="theme-color" content="#16213e">
     <style>
@@ -16,27 +17,29 @@
         }
         .lobby-container {
             background-color: var(--card-color);
-            padding: 30px 40px; /* Reduzido padding vertical */
+            padding: 30px 40px;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.4);
             text-align: center;
             width: 90%;
-            max-width: 450px; /* Aumentado um pouco */
+            max-width: 450px;
         }
-        h1 { color: var(--text-color); margin-top: 0; margin-bottom: 25px; } /* Ajustado margin */
-        .form-group { margin-bottom: 15px; } /* Reduzido margin */
+        h1 { color: var(--text-color); margin-top: 0; margin-bottom: 25px; }
+        .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .form-group input[type="text"] { /* Específico para o input de ID */
+        .form-group input[type="text"], .form-group input[type="text"] { /* Unificado */
             width: 100%;
             padding: 12px;
-            font-size: 1.2em;
+            font-size: 1.1em; /* Ajustado */
             text-align: center;
             background-color: var(--bg-color);
             border: 2px solid var(--text-color);
             color: var(--accent-color);
             border-radius: 8px;
             box-sizing: border-box;
-            text-transform: lowercase;
+        }
+        .form-group input#game-id-input { /* ID da sala continua minúsculo */
+             text-transform: lowercase;
         }
         button {
             width: 100%;
@@ -49,17 +52,16 @@
             border-radius: 8px;
             cursor: pointer;
             transition: background-color 0.3s;
-            margin-top: 5px; /* Adicionado espaço */
+            margin-top: 5px;
         }
         button:hover { background-color: #c93048; }
         button:disabled { background-color: #555; cursor: not-allowed; }
         .separator {
-            margin: 20px 0; /* Reduzido margin */
+            margin: 20px 0;
             font-weight: bold;
             color: var(--accent-color);
             opacity: 0.6;
         }
-        /* Estilos para a seleção de jogo (NOVO) */
         .game-selection {
             margin-bottom: 20px;
             padding: 15px;
@@ -73,40 +75,25 @@
             font-size: 1.1em;
             text-align: left;
         }
-        .game-options {
-            display: flex;
-            justify-content: space-around;
-        }
-        .game-options label {
-            cursor: pointer;
-            padding: 8px 15px;
-            border-radius: 6px;
-            transition: background-color 0.3s;
-        }
-        .game-options input[type="radio"] {
-            margin-right: 8px;
-            transform: scale(1.1);
-        }
-         .game-options input[type="radio"]:checked + label {
-            background-color: var(--text-color);
-            color: var(--accent-color);
-         }
-         /* Esconde o radio button original */
-         .game-options input[type="radio"] {
-           position: absolute;
-           opacity: 0;
-           width: 0;
-           height: 0;
-         }
-         .game-options label:hover {
-             background-color: rgba(233, 69, 96, 0.3);
-         }
+        .game-options { display: flex; justify-content: space-around; }
+        .game-options label { cursor: pointer; padding: 8px 15px; border-radius: 6px; transition: background-color 0.3s; }
+        .game-options input[type="radio"] { margin-right: 8px; transform: scale(1.1); }
+         .game-options input[type="radio"]:checked + label { background-color: var(--text-color); color: var(--accent-color); }
+         .game-options input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+         .game-options label:hover { background-color: rgba(233, 69, 96, 0.3); }
     </style>
 </head>
 <body>
 
     <div class="lobby-container">
-        <h1>Jogos Online</h1> <fieldset class="game-selection">
+        <h1>Jogos Online</h1>
+
+        <div class="form-group">
+            <label for="player-name-input">Seu Nome</label>
+            <input type="text" id="player-name-input" placeholder="Digite seu nome aqui">
+        </div>
+
+        <fieldset class="game-selection">
             <legend>Escolha o Jogo:</legend>
             <div class="game-options">
                 <div>
@@ -156,7 +143,11 @@
             const createBtn = document.getElementById('create-game-btn');
             const joinBtn = document.getElementById('join-game-btn');
             const gameIdInput = document.getElementById('game-id-input');
-            const memoryEmojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼']; // Mantém a lista aqui por enquanto
+            const playerNameInput = document.getElementById('player-name-input'); // NOVO
+            const memoryEmojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼']; 
+
+            // Recupera nome salvo na sessão, se houver (NOVO)
+            playerNameInput.value = sessionStorage.getItem('jogoMemoriaPlayerName') || '';
 
             let myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
             if (!myPlayerUUID) {
@@ -164,27 +155,42 @@
                 sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
             }
 
+            // Função para validar e pegar o nome (NOVO)
+            function getPlayerName() {
+                const name = playerNameInput.value.trim();
+                if (!name) {
+                    alert("Por favor, digite seu nome antes de continuar.");
+                    playerNameInput.focus();
+                    return null;
+                }
+                // Salva o nome na sessão para futuras visitas
+                sessionStorage.setItem('jogoMemoriaPlayerName', name);
+                return name;
+            }
+
             // --- JOGADOR 1: Criar Sala (Atualizado) ---
             createBtn.addEventListener('click', async () => { 
+                const playerName = getPlayerName(); // Pega o nome
+                if (!playerName) return; // Se o nome for inválido, para aqui
+
                 createBtn.disabled = true; 
                 createBtn.textContent = 'Criando...';
 
-                // Lê qual jogo foi selecionado (NOVO)
                 const selectedGameType = document.querySelector('input[name="game_type"]:checked').value;
                 const gameId = Math.random().toString(36).substr(2, 6);
                 const gameStateRef = database.ref('games/' + gameId);
                 
                 let initialState = {
                     gameId: gameId,
-                    gameType: selectedGameType, // Salva o tipo de jogo (NOVO)
+                    gameType: selectedGameType, 
                     player1_uuid: myPlayerUUID,
+                    player1_name: playerName, // Salva o nome do P1 (NOVO)
                     player2_uuid: null,
+                    player2_name: null,       // Nome do P2 inicial é null (NOVO)
                     currentPlayer: 1,
                     winner: null
-                    // Estado específico do jogo será adicionado abaixo
                 };
 
-                // Adiciona o estado inicial específico de cada jogo
                 if (selectedGameType === 'memory') {
                     const cardPairs = [...memoryEmojis, ...memoryEmojis].sort(() => 0.5 - Math.random());
                     initialState.board = {};
@@ -195,16 +201,14 @@
                     initialState.flippedCards = []; 
                     initialState.matchedPairs = 0;
                 } else if (selectedGameType === 'tictactoe') {
-                    // Estado inicial do Jogo da Velha (9 células vazias)
                     initialState.board = Array(9).fill(null); 
-                    initialState.scores = { 1: 0, 2: 0, ties: 0 }; // Pode incluir empates
+                    initialState.scores = { 1: 0, 2: 0, ties: 0 }; 
                 }
                 
                 try {
                     await gameStateRef.set(initialState); 
                     console.log(`Sala ${selectedGameType} criada:`, gameId);
                     
-                    // Redireciona para a página correta (NOVO)
                     const gamePage = selectedGameType === 'memory' ? 'game.html' : 'tictactoe.html';
                     window.location.href = `${gamePage}?game=${gameId}`;
                     
@@ -218,6 +222,9 @@
 
             // --- JOGADOR 2: Entrar na Sala (Atualizado) ---
             joinBtn.addEventListener('click', () => {
+                const playerName = getPlayerName(); // Pega o nome
+                if (!playerName) return; // Se o nome for inválido, para aqui
+
                 const gameId = gameIdInput.value.toLowerCase().trim();
                 if (!gameId) {
                     alert("Por favor, digite um ID de sala.");
@@ -232,9 +239,13 @@
                     if (snapshot.exists()) {
                         const state = snapshot.val();
                         
-                        // Verifica se a vaga P2 está vazia OU se quem está entrando é o P2 que já estava lá
+                        // Verifica se a vaga P2 está vazia OU se quem está entrando É o P2 que já estava lá
                         if (!state.player2_uuid || state.player2_uuid === myPlayerUUID) { 
-                            // Redireciona para a página correta com base no tipo de jogo (NOVO)
+                            // Antes de redirecionar, salva o nome do P2 se for a primeira vez (NOVO)
+                            if (!state.player2_uuid) {
+                                gameStateRef.update({ player2_name: playerName }); 
+                            }
+                            
                             const gamePage = state.gameType === 'memory' ? 'game.html' : 'tictactoe.html';
                              window.location.href = `${gamePage}?game=${gameId}`;
                         } else {
