@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogos Online - Lobby</title>
+    <title>Jogo da Memória - Lobby</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192.png" type="image/png">
     <meta name="theme-color" content="#16213e">
@@ -88,7 +88,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
-        // Sua configuração do Firebase
+        // *** SUA CONFIGURAÇÃO REAL DO FIREBASE ***
         const firebaseConfig = {
           apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
           authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
@@ -98,6 +98,7 @@
           messagingSenderId: "683788488529",
           appId: "1:683788488529:web:727316a3e182257a2d8d70"
         };
+        // *******************************************
 
         // Inicializar o Firebase
         firebase.initializeApp(firebaseConfig);
@@ -159,7 +160,7 @@
                     player2_name: null,
                     currentPlayer: 1,
                     winner: null,
-                    victories: { 1: 0, 2: 0 }, // <<<< GARANTE QUE VITÓRIAS SÃO INICIALIZADAS ****
+                    victories: { 1: 0, 2: 0 },
                     board: initialBoard,
                     scores: { 1: 0, 2: 0 },
                     flippedCards: [],
