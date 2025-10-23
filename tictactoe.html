@@ -1,62 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo da Velha (Online)</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icons/icon-192.png" type="image/png">
-    <meta name="theme-color" content="#16213e">
-
     <style>
-        /* CSS (sem alterações) */
-        :root{--bg-color:#1a1a2e;--board-bg-color:#16213e;--cell-bg-color:#0f3460;--text-color:#e94560;--accent-color:#fff;--player1-color:#53a8b6;--player2-color:#e94560;--win-line-color:#f5f542}body{font-family:Arial,sans-serif;background-color:var(--bg-color);color:var(--accent-color);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0}h1{color:var(--text-color);margin-bottom:10px}.game-info{display:flex;justify-content:space-between;width:300px;margin-bottom:20px;font-size:1.1em}.player-score{padding:8px 15px;border-radius:8px;font-weight:700;transition:all .3s ease;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}#player1-info{background-color:var(--player1-color)}#player2-info{background-color:var(--player2-color)}.player-score.active{box-shadow:0 0 15px var(--accent-color);transform:scale(1.05)}#turn-info{width:100%;text-align:center;font-size:1.5em;margin-bottom:20px;font-weight:700;min-height:1.5em}.game-board{display:grid;grid-template-columns:repeat(3,100px);grid-template-rows:repeat(3,100px);gap:5px;background-color:var(--board-bg-color);padding:10px;border-radius:10px;position:relative}.cell{background-color:var(--cell-bg-color);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:60px;font-weight:700;cursor:pointer;transition:background-color .3s}.cell:not(.X):not(.O):hover{background-color:#1f4a81}.cell.X{color:var(--player1-color);cursor:default}.cell.O{color:var(--player2-color);cursor:default}.win-line{position:absolute;background-color:var(--win-line-color);border-radius:5px;box-shadow:0 0 10px var(--win-line-color)}#reset-button{margin-top:25px;padding:12px 25px;font-size:1em;font-weight:700;color:var(--accent-color);background-color:var(--text-color);border:none;border-radius:8px;cursor:pointer}#game-id-display{font-size:.9em;color:var(--accent-color);margin-top:15px;opacity:.7}
+        /* ... (CSS sem alterações) ... */
     </style>
 </head>
 <body>
-
-    <h1>Jogo da Velha Online</h1>
-
-    <div class="game-info">
-        <div id="player1-info" class="player-score">X (P1): 0</div>
-        <div id="player2-info" class="player-score">O (P2): 0</div>
-    </div>
-
-    <div id="turn-info">Conectando...</div>
-
-    <div class="game-board" id="game-board">
-        </div>
-
-    <button id="reset-button">Voltar ao Lobby</button>
-    <div id="game-id-display"></div>
-
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
         // Sua configuração do Firebase
-        const firebaseConfig = {
-          apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
-          authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
-          databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com",
-          projectId: "jogo-da-memoria-lilica",
-          storageBucket: "jogo-da-memoria-lilica.firebasestorage.app",
-          messagingSenderId: "683788488529",
-          appId: "1:683788488529:web:727316a3e182257a2d8d70"
-        };
-
-        // Inicializar o Firebase
+        const firebaseConfig = { /* ... (sua config aqui) ... */ };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
         document.addEventListener('DOMContentLoaded', () => {
-            const gameBoard = document.getElementById('game-board');
-            const player1InfoEl = document.getElementById('player1-info');
-            const player2InfoEl = document.getElementById('player2-info');
-            const turnInfoEl = document.getElementById('turn-info');
-            const resetButton = document.getElementById('reset-button');
-            const gameIdDisplay = document.getElementById('game-id-display');
-
+            // ... (variáveis sem alterações) ...
             let gameStateRef;
             let gameId;
             let playerId;
@@ -64,93 +24,127 @@
             let playerNames = { 1: "Jogador 1", 2: "Jogador 2" };
 
             // --- FUNÇÃO DE INICIALIZAÇÃO ---
-            function initGame() { /* ... (código igual à versão anterior) ... */ }
+            function initGame() {
+                console.log("Iniciando initGame..."); // LOG 1
+                const urlParams = new URLSearchParams(window.location.search);
+                gameId = urlParams.get('game');
+                
+                myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
+                if (!myPlayerUUID) { console.error("Erro fatal: UUID não encontrado."); alert("Erro de sessão..."); window.location.href = 'index.html'; return; }
+                if (!gameId) { console.error("Erro fatal: gameId não encontrado na URL."); alert("Nenhum ID de sala..."); window.location.href = 'index.html'; return; }
 
-            // --- Função: "Ouvir" as mudanças do Jogo no Firebase ---
-            function setupGameListeners() { /* ... (código igual à versão anterior) ... */ }
-
-            // --- Função: Renderizar o Tabuleiro ---
-            function renderBoard(boardState, winnerInfo) { /* ... (código igual à versão anterior) ... */ }
-
-            // --- Função: Lógica do Clique na Célula (ENVIA A JOGADA - CORRIGIDO) ---
-            function onCellClick(index) {
-                console.log(`onCellClick: Célula ${index} clicada.`);
-
+                console.log(`initGame: Conectando à sala ${gameId} com UUID ${myPlayerUUID}`); // LOG 2
+                gameStateRef = database.ref('games/' + gameId);
+                
                 gameStateRef.transaction(currentState => {
-                     if (!currentState) {
-                         console.log("onCellClick abortado: Estado nulo");
-                         return currentState;
-                     }
+                    console.log("initGame - Dentro da transação. Estado atual:", currentState); // LOG 3
+                    if (currentState === null) { console.log("Transação abortada: Sala não existe."); return null; } 
+                    if (currentState.gameType !== 'tictactoe') { console.log("Transação abortada: Tipo de jogo incorreto."); return; } 
 
-                     // *** INÍCIO DA CORREÇÃO DEFENSIVA ***
-                     // Se o board não existe ou não é array, tenta inicializar SE O JOGO AINDA NÃO ACABOU
-                     if ((!currentState.board || !Array.isArray(currentState.board)) && !currentState.winner) {
-                         console.warn("Board ausente ou inválido no estado da transação! Tentando inicializar.");
-                         currentState.board = Array(9).fill(null);
-                         // Garante que scores também exista se board estava faltando
-                         currentState.scores = currentState.scores || { 1: 0, 2: 0, ties: 0 };
-                     } else if (!currentState.board && currentState.winner){
-                         // Se o board sumiu mas o jogo acabou, apenas aborta
-                          console.error("Board ausente mas jogo já tem vencedor? Abortando clique.");
-                          return;
-                     }
-                     // *** FIM DA CORREÇÃO DEFENSIVA ***
+                    if (currentState.player1_uuid === myPlayerUUID) playerId = 1;
+                    else if (currentState.player2_uuid === myPlayerUUID) playerId = 2;
+                    else if (!currentState.player2_uuid) { 
+                        playerId = 2;
+                        currentState.player2_uuid = myPlayerUUID;
+                        currentState.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || `Jogador ${playerId}`; 
+                    } else { console.log("Transação abortada: Sala cheia."); return; } 
+                    
+                    console.log(`initGame - Transação: Definido playerId como ${playerId}`); // LOG 4
+                    return currentState; 
+                }, (error, committed, snapshot) => {
+                    if (error) {
+                        console.error("Erro na transação initGame:", error);
+                        alert("Erro ao tentar conectar à sala. Voltando ao Lobby."); window.location.href = 'index.html';
+                    } else if (!committed) {
+                        console.warn("Transação initGame não commitada (sala cheia/inexistente?). Estado final:", snapshot?.val()); // LOG 5
+                         alert(snapshot?.val()?.gameType !== 'tictactoe' ? "Tipo de jogo incorreto!" : (snapshot?.val()?.player2_uuid && snapshot.val().player2_uuid !== myPlayerUUID ? "Sala cheia!" : "Sala não encontrada!"));
+                        window.location.href = 'index.html';
+                    } else {
+                        console.log("initGame: Conectado com sucesso como Jogador:", playerId); // LOG 6
+                        setupGameListeners(); 
+                    }
+                });
+            }
+            
+            // --- Função: "Ouvir" as mudanças do Jogo no Firebase ---
+            function setupGameListeners() {
+                console.log(`setupGameListeners: Iniciando ouvinte para sala ${gameId}`); // LOG 7
+                gameIdDisplay.textContent = `ID da Sala: ${gameId}`;
+                
+                gameStateRef.on('value', (snapshot) => {
+                    const state = snapshot.val();
+                    console.log("setupGameListeners - 'on value' chamado. Estado recebido:", state); // LOG 8
+                    
+                    if (!state) { 
+                        console.warn("setupGameListeners: Estado nulo recebido (jogo encerrado?).");
+                        if (document.visibilityState === 'visible') { 
+                           alert("O jogo foi encerrado.");
+                           window.location.href = 'index.html';
+                        }
+                        return;
+                    } 
 
-
-                     console.log("onCellClick - Estado atual (pós-verificação):", currentState);
-                     console.log("onCellClick - Meu playerId:", playerId);
-
-                     // Validações
-                     if (currentState.winner) {
-                         console.log("onCellClick abortado: Jogo já acabou (winner:", currentState.winner, ")");
-                         return; // Jogo já acabou
-                     }
-                     if (currentState.currentPlayer !== playerId) {
-                         console.log(`onCellClick abortado: Não é minha vez (currentPlayer: ${currentState.currentPlayer}, meuId: ${playerId})`);
-                         return; // Não é minha vez
-                     }
-                     // Agora é seguro acessar currentState.board[index]
-                     if (currentState.board[index] !== null) {
-                         console.log(`onCellClick abortado: Célula ${index} já ocupada com ${currentState.board[index]}`);
-                         return; // Célula já ocupada
-                     }
-
-                     console.log(`onCellClick: Jogada válida na célula ${index} pelo Jogador ${playerId}`);
-
-                     // Modifica o estado
-                     currentState.board[index] = playerId === 1 ? 'X' : 'O';
-
-                     const winnerCheck = checkForWinner(currentState.board);
-                     if (winnerCheck) {
-                         currentState.winner = winnerCheck.winner;
-                         currentState.winnerInfo = winnerCheck;
-                         // Garante que scores exista antes de incrementar
-                         currentState.scores = currentState.scores || { 1: 0, 2: 0, ties: 0 };
-                         if (winnerCheck.winner === 'X') currentState.scores[1]++;
-                         else if (winnerCheck.winner === 'O') currentState.scores[2]++;
-                         else currentState.scores.ties++;
-                     } else {
-                         currentState.currentPlayer = currentState.currentPlayer === 1 ? 2 : 1;
-                     }
-
-                     return currentState;
-                 });
+                    playerNames[1] = state.player1_name || "Jogador 1";
+                    playerNames[2] = state.player2_name || "Jogador 2";
+                    // Garante que board seja um array, mesmo que venha como objeto ou nulo
+                    state.board = state.board ? (Array.isArray(state.board) ? state.board : Object.values(state.board)) : Array(9).fill(null); 
+                    state.scores = state.scores || { 1: 0, 2: 0, ties: 0 };
+                    
+                    console.log("setupGameListeners: Estado normalizado:", state); // LOG 9
+                    
+                    updateScoreboard(state.scores);
+                    updateTurnInfo(state.currentPlayer, state.winner, state.player2_uuid);
+                    renderBoard(state.board, state.winnerInfo); 
+                }, (error) => { // Adiciona tratamento de erro para o listener 'on'
+                     console.error("Erro no listener do Firebase 'on value':", error);
+                     alert("Erro de conexão com o jogo. Tente recarregar.");
+                });
             }
 
+            // --- Função: Renderizar o Tabuleiro ---
+            function renderBoard(boardState, winnerInfo) {
+                 console.log("renderBoard chamado com board:", boardState); // LOG 10
+                 gameBoard.innerHTML = ''; 
+                 const oldWinLine = gameBoard.querySelector('.win-line');
+                 if (oldWinLine) oldWinLine.remove();
+
+                 // Adiciona verificação se boardState é realmente um array
+                 if (!Array.isArray(boardState)) {
+                     console.error("renderBoard Erro: boardState não é um array!", boardState);
+                     turnInfoEl.textContent = "Erro ao carregar tabuleiro!";
+                     return;
+                 }
+
+                 boardState.forEach((cellValue, index) => {
+                     const cell = document.createElement('div');
+                     cell.classList.add('cell');
+                     cell.dataset.index = index; 
+                     if (cellValue) {
+                         cell.textContent = cellValue; 
+                         cell.classList.add(cellValue);
+                         cell.style.cursor = 'default'; 
+                     } else if (winnerInfo === undefined || winnerInfo === null) { 
+                         cell.addEventListener('click', () => onCellClick(index));
+                     } else {
+                          cell.style.cursor = 'default'; 
+                     }
+                     gameBoard.appendChild(cell);
+                 });
+                 if (winnerInfo) { drawWinLine(winnerInfo); }
+            }
+            
+            // --- Função: Lógica do Clique na Célula ---
+            function onCellClick(index) { /* ... (código igual, já tem logs) ... */ }
             // --- Função: Verificar Vitória ou Empate ---
-            function checkForWinner(board) { /* ... (sem alterações) ... */ }
-
+            function checkForWinner(board) { /* ... (código igual) ... */ }
             // --- Função: Desenha a linha de vitória ---
-             function drawWinLine(winnerInfo) { /* ... (sem alterações) ... */ }
-
+            function drawWinLine(winnerInfo) { /* ... (código igual) ... */ }
             // --- Função: Atualizar Placar ---
-            function updateScoreboard(scores) { /* ... (sem alterações) ... */ }
-
+            function updateScoreboard(scores) { /* ... (código igual) ... */ }
             // --- Função: Atualizar Info de Turno e Fim de Jogo ---
-            function updateTurnInfo(currentPlayer, winner, player2_uuid) { /* ... (sem alterações) ... */ }
-
+            function updateTurnInfo(currentPlayer, winner, player2_uuid) { /* ... (código igual) ... */ }
             // --- Event Listeners ---
-            resetButton.addEventListener('click', () => { /* ... (sem alterações) ... */ });
+            resetButton.addEventListener('click', () => { /* ... (código igual) ... */ });
 
             // --- Inicia o Jogo ---
             initGame();
