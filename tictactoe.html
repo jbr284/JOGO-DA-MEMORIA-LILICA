@@ -46,8 +46,15 @@
         };
 
         // Inicializar o Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
+            console.log("Firebase inicializado com sucesso."); // LOG INICIALIZAÇÃO
+        } catch (e) {
+            console.error("ERRO FATAL AO INICIALIZAR FIREBASE:", e);
+            alert("Erro crítico ao inicializar. Verifique a configuração do Firebase.");
+        }
+
 
         document.addEventListener('DOMContentLoaded', () => {
             const gameBoard = document.getElementById('game-board');
@@ -64,14 +71,97 @@
             let playerNames = { 1: "Jogador 1", 2: "Jogador 2" };
 
             // --- FUNÇÃO DE INICIALIZAÇÃO ---
-            function initGame() { /* ... (código igual à versão anterior) ... */ }
+            function initGame() {
+                console.log("Iniciando initGame...");
+                const urlParams = new URLSearchParams(window.location.search);
+                gameId = urlParams.get('game');
+
+                myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
+                if (!myPlayerUUID) { console.error("Erro fatal: UUID não encontrado."); alert("Erro de sessão..."); window.location.href = 'index.html'; return; }
+                if (!gameId) { console.error("Erro fatal: gameId não encontrado na URL."); alert("Nenhum ID de sala..."); window.location.href = 'index.html'; return; }
+
+                console.log(`initGame: Tentando conectar à sala ${gameId} com UUID ${myPlayerUUID}`);
+                // Adiciona tratamento de erro para database indefinido (se inicialização falhou)
+                if (typeof database === 'undefined' || !database) {
+                     console.error("initGame: Instância do Database não está definida!");
+                     alert("Erro na conexão com o banco de dados.");
+                     return;
+                }
+                gameStateRef = database.ref('games/' + gameId);
+
+                gameStateRef.transaction(currentState => {
+                    console.log("initGame - Dentro da transação. Estado atual recebido:", currentState);
+                    if (currentState === null) { console.log("Transação abortada: Sala não existe (currentState é null)."); return null; }
+                    if (currentState.gameType !== 'tictactoe') { console.log("Transação abortada: Tipo de jogo incorreto."); return; } // undefined aborta
+
+                    if (currentState.player1_uuid === myPlayerUUID) playerId = 1;
+                    else if (currentState.player2_uuid === myPlayerUUID) playerId = 2;
+                    else if (!currentState.player2_uuid) {
+                        playerId = 2;
+                        currentState.player2_uuid = myPlayerUUID;
+                        currentState.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || `Jogador ${playerId}`;
+                    } else { console.log("Transação abortada: Sala cheia."); return; } // undefined aborta
+
+                    console.log(`initGame - Transação: Estado a ser salvo com playerId ${playerId}:`, currentState);
+                    return currentState;
+                }, (error, committed, snapshot) => {
+                    console.log(`initGame - Resultado da transação: error=${error}, committed=${committed}`); // LOG RESULTADO TRANSAÇÃO
+                    if (error) {
+                        console.error("Erro na transação initGame:", error);
+                        alert("Erro ao tentar conectar à sala. Voltando ao Lobby."); window.location.href = 'index.html';
+                    } else if (!committed) {
+                        console.warn("Transação initGame não commitada. Estado final lido:", snapshot?.val());
+                         alert(snapshot?.val()?.gameType !== 'tictactoe' ? "Tipo de jogo incorreto!" : (snapshot?.val()?.player2_uuid && snapshot.val().player2_uuid !== myPlayerUUID ? "Sala cheia!" : "Sala não encontrada!"));
+                        window.location.href = 'index.html';
+                    } else {
+                        // ** Só chama setupGameListeners se a transação foi bem sucedida **
+                        console.log("initGame: Transação OK. Conectado como Jogador:", playerId);
+                        setupGameListeners();
+                    }
+                });
+            }
 
             // --- Função: "Ouvir" as mudanças do Jogo no Firebase ---
-            function setupGameListeners() { /* ... (código igual à versão anterior) ... */ }
+            function setupGameListeners() {
+                console.log(`setupGameListeners: Configurando ouvinte para sala ${gameId}`);
+                gameIdDisplay.textContent = `ID da Sala: ${gameId}`;
 
-            // --- Função: Renderizar o Tabuleiro (CORRIGIDA) ---
+                // Usa 'off()' para garantir que não haja listeners duplicados se algo der errado
+                if (gameStateRef) gameStateRef.off();
+
+                gameStateRef.on('value', (snapshot) => {
+                    const state = snapshot.val();
+                    console.log("setupGameListeners - 'on value'. Estado recebido:", state);
+
+                    if (!state) {
+                        console.warn("setupGameListeners: Estado nulo recebido (jogo encerrado?).");
+                        if (document.visibilityState === 'visible') {
+                           // alert("O jogo foi encerrado.");
+                           // window.location.href = 'index.html'; // Comentar por enquanto para depurar
+                        }
+                        return;
+                    }
+
+                    playerNames[1] = state.player1_name || "Jogador 1";
+                    playerNames[2] = state.player2_name || "Jogador 2";
+                    state.board = state.board ? (Array.isArray(state.board) ? state.board : Object.values(state.board)) : Array(9).fill(null);
+                    state.scores = state.scores || { 1: 0, 2: 0, ties: 0 };
+
+                    console.log("setupGameListeners: Estado normalizado pronto para UI:", state);
+
+                    updateScoreboard(state.scores);
+                    updateTurnInfo(state.currentPlayer, state.winner, state.player2_uuid);
+                    renderBoard(state.board, state.winnerInfo);
+                }, (error) => {
+                     console.error("Erro CRÍTICO no listener do Firebase 'on value':", error);
+                     alert("Erro de conexão com o jogo em tempo real. Tente recarregar.");
+                     turnInfoEl.textContent = "Erro de Conexão!";
+                });
+            }
+
+            // --- Função: Renderizar o Tabuleiro ---
             function renderBoard(boardState, winnerInfo) {
-                 console.log("renderBoard chamado com board:", boardState);
+                 console.log("renderBoard chamado com board:", boardState, "e winnerInfo:", winnerInfo);
                  gameBoard.innerHTML = '';
                  const oldWinLine = gameBoard.querySelector('.win-line');
                  if (oldWinLine) oldWinLine.remove();
@@ -79,11 +169,9 @@
                  if (!Array.isArray(boardState)) {
                      console.error("renderBoard Erro: boardState não é um array!", boardState);
                      turnInfoEl.textContent = "Erro ao carregar tabuleiro!";
-                     // Tenta criar um board vazio para evitar que a UI fique totalmente quebrada
-                     boardState = Array(9).fill(null); 
+                     boardState = Array(9).fill(null); // Tenta renderizar vazio
                  }
 
-                 // *** INÍCIO DA CORREÇÃO: Cria as células diretamente ***
                  boardState.forEach((cellValue, index) => {
                      const cell = document.createElement('div');
                      cell.classList.add('cell');
@@ -93,35 +181,29 @@
                          cell.classList.add(cellValue);
                          cell.style.cursor = 'default';
                      } else if (winnerInfo === undefined || winnerInfo === null) {
+                         // Adiciona listener APENAS se a célula está vazia E o jogo não acabou
                          cell.addEventListener('click', () => onCellClick(index));
                      } else {
-                          cell.style.cursor = 'default';
+                          cell.style.cursor = 'default'; // Jogo acabou, não clicável
                      }
                      gameBoard.appendChild(cell);
                  });
-                 // *** FIM DA CORREÇÃO ***
-
                  if (winnerInfo) { drawWinLine(winnerInfo); }
             }
 
 
             // --- Função: Lógica do Clique na Célula ---
-            function onCellClick(index) { /* ... (código igual à versão anterior) ... */ }
-
+            function onCellClick(index) { /* ... (código igual à versão anterior, já tem logs) ... */ }
             // --- Função: Verificar Vitória ou Empate ---
-            function checkForWinner(board) { /* ... (código igual à versão anterior) ... */ }
-
+            function checkForWinner(board) { /* ... (código igual) ... */ }
             // --- Função: Desenha a linha de vitória ---
-             function drawWinLine(winnerInfo) { /* ... (código igual à versão anterior) ... */ }
-
+            function drawWinLine(winnerInfo) { /* ... (código igual) ... */ }
             // --- Função: Atualizar Placar ---
-            function updateScoreboard(scores) { /* ... (código igual à versão anterior) ... */ }
-
+            function updateScoreboard(scores) { /* ... (código igual) ... */ }
             // --- Função: Atualizar Info de Turno e Fim de Jogo ---
-            function updateTurnInfo(currentPlayer, winner, player2_uuid) { /* ... (código igual à versão anterior) ... */ }
-
+            function updateTurnInfo(currentPlayer, winner, player2_uuid) { /* ... (código igual) ... */ }
             // --- Event Listeners ---
-            resetButton.addEventListener('click', () => { /* ... (código igual à versão anterior) ... */ });
+            resetButton.addEventListener('click', () => { /* ... (código igual) ... */ });
 
             // --- Inicia o Jogo ---
             initGame();
