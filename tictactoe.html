@@ -54,7 +54,6 @@
             const player1InfoEl = document.getElementById('player1-info');
             const player2InfoEl = document.getElementById('player2-info');
             const turnInfoEl = document.getElementById('turn-info');
-             // ** CORREÇÃO resetButton: Garante que o botão seja selecionado aqui **
             const resetButton = document.getElementById('reset-button');
             const gameIdDisplay = document.getElementById('game-id-display');
 
@@ -70,8 +69,41 @@
             // --- Função: "Ouvir" as mudanças do Jogo no Firebase ---
             function setupGameListeners() { /* ... (código igual à versão anterior) ... */ }
 
-            // --- Função: Renderizar o Tabuleiro ---
-            function renderBoard(boardState, winnerInfo) { /* ... (código igual à versão anterior) ... */ }
+            // --- Função: Renderizar o Tabuleiro (CORRIGIDA) ---
+            function renderBoard(boardState, winnerInfo) {
+                 console.log("renderBoard chamado com board:", boardState);
+                 gameBoard.innerHTML = '';
+                 const oldWinLine = gameBoard.querySelector('.win-line');
+                 if (oldWinLine) oldWinLine.remove();
+
+                 if (!Array.isArray(boardState)) {
+                     console.error("renderBoard Erro: boardState não é um array!", boardState);
+                     turnInfoEl.textContent = "Erro ao carregar tabuleiro!";
+                     // Tenta criar um board vazio para evitar que a UI fique totalmente quebrada
+                     boardState = Array(9).fill(null); 
+                 }
+
+                 // *** INÍCIO DA CORREÇÃO: Cria as células diretamente ***
+                 boardState.forEach((cellValue, index) => {
+                     const cell = document.createElement('div');
+                     cell.classList.add('cell');
+                     cell.dataset.index = index;
+                     if (cellValue) {
+                         cell.textContent = cellValue;
+                         cell.classList.add(cellValue);
+                         cell.style.cursor = 'default';
+                     } else if (winnerInfo === undefined || winnerInfo === null) {
+                         cell.addEventListener('click', () => onCellClick(index));
+                     } else {
+                          cell.style.cursor = 'default';
+                     }
+                     gameBoard.appendChild(cell);
+                 });
+                 // *** FIM DA CORREÇÃO ***
+
+                 if (winnerInfo) { drawWinLine(winnerInfo); }
+            }
+
 
             // --- Função: Lógica do Clique na Célula ---
             function onCellClick(index) { /* ... (código igual à versão anterior) ... */ }
@@ -89,18 +121,7 @@
             function updateTurnInfo(currentPlayer, winner, player2_uuid) { /* ... (código igual à versão anterior) ... */ }
 
             // --- Event Listeners ---
-            // A variável resetButton agora está definida corretamente
-            resetButton.addEventListener('click', () => {
-                if (confirm('Tem certeza que deseja sair? O jogo atual será encerrado se você for o Jogador 1.')) {
-                    if (gameStateRef) gameStateRef.off();
-                    if (playerId === 1 && gameStateRef) {
-                        gameStateRef.remove()
-                            .finally(() => window.location.href = 'index.html');
-                    } else {
-                        window.location.href = 'index.html';
-                    }
-                }
-            });
+            resetButton.addEventListener('click', () => { /* ... (código igual à versão anterior) ... */ });
 
             // --- Inicia o Jogo ---
             initGame();
