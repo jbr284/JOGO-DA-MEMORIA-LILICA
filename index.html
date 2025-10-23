@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo da Memória - Lobby</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Jogos Online - Lobby</title> <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192.png" type="image/png">
     <meta name="theme-color" content="#16213e">
     <style>
@@ -13,21 +12,21 @@
         }
         body {
             font-family: 'Arial', sans-serif; background-color: var(--bg-color); color: var(--accent-color);
-            display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0;
+            display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;
         }
         .lobby-container {
             background-color: var(--card-color);
-            padding: 40px;
+            padding: 30px 40px; /* Reduzido padding vertical */
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.4);
             text-align: center;
             width: 90%;
-            max-width: 400px;
+            max-width: 450px; /* Aumentado um pouco */
         }
-        h1 { color: var(--text-color); margin-top: 0; }
-        .form-group { margin-bottom: 20px; }
+        h1 { color: var(--text-color); margin-top: 0; margin-bottom: 25px; } /* Ajustado margin */
+        .form-group { margin-bottom: 15px; } /* Reduzido margin */
         .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .form-group input {
+        .form-group input[type="text"] { /* Específico para o input de ID */
             width: 100%;
             padding: 12px;
             font-size: 1.2em;
@@ -50,21 +49,76 @@
             border-radius: 8px;
             cursor: pointer;
             transition: background-color 0.3s;
+            margin-top: 5px; /* Adicionado espaço */
         }
         button:hover { background-color: #c93048; }
         button:disabled { background-color: #555; cursor: not-allowed; }
         .separator {
-            margin: 25px 0;
+            margin: 20px 0; /* Reduzido margin */
             font-weight: bold;
             color: var(--accent-color);
             opacity: 0.6;
         }
+        /* Estilos para a seleção de jogo (NOVO) */
+        .game-selection {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        .game-selection legend {
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            text-align: left;
+        }
+        .game-options {
+            display: flex;
+            justify-content: space-around;
+        }
+        .game-options label {
+            cursor: pointer;
+            padding: 8px 15px;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+        }
+        .game-options input[type="radio"] {
+            margin-right: 8px;
+            transform: scale(1.1);
+        }
+         .game-options input[type="radio"]:checked + label {
+            background-color: var(--text-color);
+            color: var(--accent-color);
+         }
+         /* Esconde o radio button original */
+         .game-options input[type="radio"] {
+           position: absolute;
+           opacity: 0;
+           width: 0;
+           height: 0;
+         }
+         .game-options label:hover {
+             background-color: rgba(233, 69, 96, 0.3);
+         }
     </style>
 </head>
 <body>
 
     <div class="lobby-container">
-        <h1>Jogo da Memória</h1>
+        <h1>Jogos Online</h1> <fieldset class="game-selection">
+            <legend>Escolha o Jogo:</legend>
+            <div class="game-options">
+                <div>
+                    <input type="radio" id="game-memory" name="game_type" value="memory" checked>
+                    <label for="game-memory">Jogo da Memória</label>
+                </div>
+                <div>
+                    <input type="radio" id="game-tictactoe" name="game_type" value="tictactoe">
+                    <label for="game-tictactoe">Jogo da Velha</label>
+                </div>
+            </div>
+        </fieldset>
         
         <div class="form-group">
             <button id="create-game-btn">Criar Nova Sala</button>
@@ -102,7 +156,7 @@
             const createBtn = document.getElementById('create-game-btn');
             const joinBtn = document.getElementById('join-game-btn');
             const gameIdInput = document.getElementById('game-id-input');
-            const emojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+            const memoryEmojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼']; // Mantém a lista aqui por enquanto
 
             let myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
             if (!myPlayerUUID) {
@@ -110,36 +164,50 @@
                 sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
             }
 
-            // --- JOGADOR 1: Criar Sala ---
+            // --- JOGADOR 1: Criar Sala (Atualizado) ---
             createBtn.addEventListener('click', async () => { 
                 createBtn.disabled = true; 
                 createBtn.textContent = 'Criando...';
 
+                // Lê qual jogo foi selecionado (NOVO)
+                const selectedGameType = document.querySelector('input[name="game_type"]:checked').value;
                 const gameId = Math.random().toString(36).substr(2, 6);
                 const gameStateRef = database.ref('games/' + gameId);
                 
-                const cardPairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
-                const initialBoard = {};
-                cardPairs.forEach((emoji, index) => {
-                    initialBoard[index] = { id: index, emoji: emoji, isFlipped: false, isMatched: false };
-                });
-
-                const initialState = {
+                let initialState = {
                     gameId: gameId,
+                    gameType: selectedGameType, // Salva o tipo de jogo (NOVO)
                     player1_uuid: myPlayerUUID,
                     player2_uuid: null,
                     currentPlayer: 1,
-                    scores: { 1: 0, 2: 0 },
-                    board: initialBoard,
-                    flippedCards: [], 
-                    matchedPairs: 0,
                     winner: null
+                    // Estado específico do jogo será adicionado abaixo
                 };
+
+                // Adiciona o estado inicial específico de cada jogo
+                if (selectedGameType === 'memory') {
+                    const cardPairs = [...memoryEmojis, ...memoryEmojis].sort(() => 0.5 - Math.random());
+                    initialState.board = {};
+                    cardPairs.forEach((emoji, index) => {
+                        initialState.board[index] = { id: index, emoji: emoji, isFlipped: false, isMatched: false };
+                    });
+                    initialState.scores = { 1: 0, 2: 0 };
+                    initialState.flippedCards = []; 
+                    initialState.matchedPairs = 0;
+                } else if (selectedGameType === 'tictactoe') {
+                    // Estado inicial do Jogo da Velha (9 células vazias)
+                    initialState.board = Array(9).fill(null); 
+                    initialState.scores = { 1: 0, 2: 0, ties: 0 }; // Pode incluir empates
+                }
                 
                 try {
                     await gameStateRef.set(initialState); 
-                    console.log('Sala criada no Firebase:', gameId);
-                    window.location.href = `game.html?game=${gameId}`;
+                    console.log(`Sala ${selectedGameType} criada:`, gameId);
+                    
+                    // Redireciona para a página correta (NOVO)
+                    const gamePage = selectedGameType === 'memory' ? 'game.html' : 'tictactoe.html';
+                    window.location.href = `${gamePage}?game=${gameId}`;
+                    
                 } catch (error) {
                     console.error("Erro ao criar sala:", error);
                     alert("Erro ao criar a sala. Tente novamente.");
@@ -148,7 +216,7 @@
                 }
             });
 
-            // --- JOGADOR 2: Entrar na Sala (VERIFICAÇÃO CORRIGIDA) ---
+            // --- JOGADOR 2: Entrar na Sala (Atualizado) ---
             joinBtn.addEventListener('click', () => {
                 const gameId = gameIdInput.value.toLowerCase().trim();
                 if (!gameId) {
@@ -163,12 +231,12 @@
                 gameStateRef.once('value', (snapshot) => {
                     if (snapshot.exists()) {
                         const state = snapshot.val();
-                        // *** INÍCIO DA CORREÇÃO ***
-                        // Verifica se a vaga P2 está VAZIA (!state.player2_uuid inclui null E undefined)
-                        // OU se quem está entrando É o P2 que já estava lá
+                        
+                        // Verifica se a vaga P2 está vazia OU se quem está entrando é o P2 que já estava lá
                         if (!state.player2_uuid || state.player2_uuid === myPlayerUUID) { 
-                        // *** FIM DA CORREÇÃO ***
-                            window.location.href = `game.html?game=${gameId}`;
+                            // Redireciona para a página correta com base no tipo de jogo (NOVO)
+                            const gamePage = state.gameType === 'memory' ? 'game.html' : 'tictactoe.html';
+                             window.location.href = `${gamePage}?game=${gameId}`;
                         } else {
                             alert("Esta sala já está cheia!");
                             joinBtn.disabled = false;
