@@ -19,13 +19,13 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0;
         }
         h1 { color: var(--text-color); margin-bottom: 10px; }
-        .game-info { display: flex; justify-content: space-between; width: 300px; margin-bottom: 20px; font-size: 1.1em; /* Ajustado */ }
+        .game-info { display: flex; justify-content: space-between; width: 300px; margin-bottom: 20px; font-size: 1.1em; }
         .player-score { 
             padding: 8px 15px; border-radius: 8px; font-weight: bold; transition: all 0.3s ease; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; /* Evita que nomes longos quebrem o layout */
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; 
         }
-        #player1-info { background-color: var(--player1-color); } /* ID atualizado */
-        #player2-info { background-color: var(--player2-color); } /* ID atualizado */
+        #player1-info { background-color: var(--player1-color); } 
+        #player2-info { background-color: var(--player2-color); } 
         .player-score.active { box-shadow: 0 0 15px var(--accent-color); transform: scale(1.05); }
         #turn-info { width: 100%; text-align: center; font-size: 1.5em; margin-bottom: 20px; font-weight: bold; min-height: 1.5em; }
         
@@ -37,7 +37,7 @@
             background-color: var(--cell-bg-color); border-radius: 8px; display: flex; align-items: center; justify-content: center;
             font-size: 60px; font-weight: bold; cursor: pointer; transition: background-color 0.3s;
         }
-        .cell:not(.X):not(.O):hover { background-color: #1f4a81; } /* Só permite hover em células vazias */
+        .cell:not(.X):not(.O):hover { background-color: #1f4a81; } 
         .cell.X { color: var(--player1-color); cursor: default; }
         .cell.O { color: var(--player2-color); cursor: default; }
         
@@ -88,7 +88,6 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const gameBoard = document.getElementById('game-board');
-            // Seletores atualizados
             const player1InfoEl = document.getElementById('player1-info'); 
             const player2InfoEl = document.getElementById('player2-info');
             const turnInfoEl = document.getElementById('turn-info');
@@ -99,7 +98,7 @@
             let gameId;       
             let playerId;     // Será 1 (X) ou 2 (O)
             let myPlayerUUID;
-            let playerNames = { 1: "Jogador 1", 2: "Jogador 2" }; // Nomes padrão
+            let playerNames = { 1: "Jogador 1", 2: "Jogador 2" };
 
             // --- FUNÇÃO DE INICIALIZAÇÃO ---
             function initGame() {
@@ -118,8 +117,7 @@
                 
                 gameStateRef.transaction(currentState => {
                     if (currentState === null) return null; 
-
-                    if (currentState.gameType !== 'tictactoe') return; // Aborta
+                    if (currentState.gameType !== 'tictactoe') return; 
 
                     if (currentState.player1_uuid === myPlayerUUID) {
                         playerId = 1;
@@ -127,9 +125,7 @@
                         playerId = 2;
                     } else if (!currentState.player2_uuid) { 
                         playerId = 2;
-                        // currentState.player2 = true; // Não precisa mais disso
                         currentState.player2_uuid = myPlayerUUID;
-                        // Pega o nome salvo no Lobby e salva no Firebase (NOVO)
                         currentState.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || `Jogador ${playerId}`; 
                     } else {
                         return; // Sala cheia
@@ -139,7 +135,7 @@
                     if (error || !committed) {
                          alert(snapshot?.val()?.gameType !== 'tictactoe' ? 
                               "Tipo de jogo incorreto!" : 
-                              (snapshot?.val()?.player2_uuid ? "Sala cheia!" : "Sala não encontrada ou erro!"));
+                              (snapshot?.val()?.player2_uuid && snapshot.val().player2_uuid !== myPlayerUUID ? "Sala cheia!" : "Sala não encontrada ou erro!")); // Ajuste na msg de sala cheia
                         window.location.href = 'index.html';
                     } else {
                         console.log("Conectado (Jogo da Velha) como Jogador:", playerId);
@@ -162,7 +158,6 @@
                         return;
                     } 
 
-                    // Atualiza nomes (NOVO)
                     playerNames[1] = state.player1_name || "Jogador 1";
                     playerNames[2] = state.player2_name || "Jogador 2";
 
@@ -171,7 +166,7 @@
                     
                     updateScoreboard(state.scores);
                     updateTurnInfo(state.currentPlayer, state.winner, state.player2_uuid);
-                    renderBoard(state.board, state.winnerInfo); // Passa winnerInfo
+                    renderBoard(state.board, state.winnerInfo); 
                 });
             }
 
@@ -189,8 +184,8 @@
                     if (cellValue) {
                         cell.textContent = cellValue; 
                         cell.classList.add(cellValue);
-                        cell.style.cursor = 'default'; // Ocupado, não clicável
-                    } else if (winnerInfo === undefined || winnerInfo === null) { // Só add listener se jogo não acabou
+                        cell.style.cursor = 'default'; 
+                    } else if (winnerInfo === undefined || winnerInfo === null) { 
                         cell.addEventListener('click', () => onCellClick(index));
                     } else {
                          cell.style.cursor = 'default'; 
@@ -203,21 +198,24 @@
                 }
             }
             
-            // --- Função: Lógica do Clique na Célula (ENVIA A JOGADA) ---
+            // --- Função: Lógica do Clique na Célula (ENVIA A JOGADA - CORRIGIDO) ---
             function onCellClick(index) {
                 gameStateRef.transaction(currentState => {
                      if (!currentState) return currentState; 
 
+                     // *** INÍCIO DA CORREÇÃO ***
+                     // Remove a verificação desnecessária de player2_uuid
                      if (currentState.winner !== null ||                
                          currentState.currentPlayer !== playerId ||    
-                         currentState.player2_uuid === null ||       
+                         // currentState.player2_uuid === null || // REMOVIDO
                          currentState.board[index] !== null) {     
                          return; // Aborta
                      }
+                     // *** FIM DA CORREÇÃO ***
 
                      currentState.board[index] = playerId === 1 ? 'X' : 'O'; 
                      
-                     const winnerCheck = checkForWinner(currentState.board); // Renomeado para evitar conflito
+                     const winnerCheck = checkForWinner(currentState.board); 
                      if (winnerCheck) {
                          currentState.winner = winnerCheck.winner; 
                          currentState.winnerInfo = winnerCheck;   
@@ -240,61 +238,66 @@
                 for (let i = 0; i < winningCombinations.length; i++) {
                     const [a, b, c] = winningCombinations[i];
                     if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                        return { winner: board[a], combination: winningCombinations[i] }; // Retorna 'X' ou 'O' e a combinação
+                        return { winner: board[a], combination: winningCombinations[i] }; 
                     }
                 }
-                if (board.every(cell => cell !== null)) return { winner: 'T' }; // Empate
-                return null; // Ninguém ganhou ainda
+                if (board.every(cell => cell !== null)) return { winner: 'T' }; 
+                return null; 
             }
             
             // --- Função: Desenha a linha de vitória ---
-            function drawWinLine(winnerInfo) {
+             function drawWinLine(winnerInfo) {
                 if (!winnerInfo || !winnerInfo.combination) return;
 
                 const line = document.createElement('div');
                 line.classList.add('win-line');
-                const boardRect = gameBoard.getBoundingClientRect();
-                const cellElements = gameBoard.querySelectorAll('.cell');
-                const [start, middle, end] = winnerInfo.combination; // Precisa do 'middle' para cálculo correto
-                const startRect = cellElements[start].getBoundingClientRect();
-                const endRect = cellElements[end].getBoundingClientRect();
-                 const middleRect = cellElements[middle].getBoundingClientRect(); // Pega o do meio
+                // Pequeno delay para garantir que o tabuleiro foi renderizado
+                requestAnimationFrame(() => {
+                    const boardRect = gameBoard.getBoundingClientRect();
+                    // Garante que os elementos existem antes de pegar o Rect
+                    const cellElements = gameBoard.querySelectorAll('.cell');
+                    if(cellElements.length !== 9) return; 
+                    
+                    const [start, middle, end] = winnerInfo.combination; 
+                    const startRect = cellElements[start]?.getBoundingClientRect();
+                    const endRect = cellElements[end]?.getBoundingClientRect();
+                    const middleRect = cellElements[middle]?.getBoundingClientRect(); 
+                    
+                    // Verifica se os Rects foram obtidos
+                    if(!startRect || !endRect || !middleRect) return;
 
-                // Calcula posições relativas ao tabuleiro
-                const startX = startRect.left + startRect.width / 2 - boardRect.left;
-                const startY = startRect.top + startRect.height / 2 - boardRect.top;
-                const endX = endRect.left + endRect.width / 2 - boardRect.left;
-                const endY = endRect.top + endRect.height / 2 - boardRect.top;
+                    const startX = startRect.left + startRect.width / 2 - boardRect.left;
+                    const startY = startRect.top + startRect.height / 2 - boardRect.top;
+                    const endX = endRect.left + endRect.width / 2 - boardRect.left;
+                    const endY = endRect.top + endRect.height / 2 - boardRect.top;
 
-                const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
-                const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) + (startRect.width * 0.8); // Aumenta um pouco
+                    const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+                    const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) + (startRect.width * 0.8); 
 
-                line.style.width = `${length}px`;
-                line.style.height = '8px'; 
-                
-                 // Posiciona a linha no centro da célula do meio para centralizar corretamente
-                 const middleX = middleRect.left + middleRect.width / 2 - boardRect.left;
-                 const middleY = middleRect.top + middleRect.height / 2 - boardRect.top;
+                    line.style.width = `${length}px`;
+                    line.style.height = '8px'; 
+                    
+                    const middleX = middleRect.left + middleRect.width / 2 - boardRect.left;
+                    const middleY = middleRect.top + middleRect.height / 2 - boardRect.top;
 
-                 line.style.top = `${middleY}px`;
-                 line.style.left = `${middleX}px`;
-                 line.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`; // Centraliza e rotaciona
-                 line.style.transformOrigin = 'center center';
+                    line.style.top = `${middleY}px`;
+                    line.style.left = `${middleX}px`;
+                    line.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`; 
+                    line.style.transformOrigin = 'center center';
 
-
-                gameBoard.appendChild(line);
+                    gameBoard.appendChild(line);
+                 });
             }
 
             
-            // --- Função: Atualizar Placar (Atualizada) ---
+            // --- Função: Atualizar Placar ---
             function updateScoreboard(scores) {
-                // Usa os nomes dos jogadores lidos do Firebase
                 player1InfoEl.textContent = `${playerNames[1]} (X): ${scores[1]}`; 
                 player2InfoEl.textContent = `${playerNames[2]} (O): ${scores[2]}`;
             }
             
-            // --- Função: Atualizar Info de Turno e Fim de Jogo (Atualizada) ---
-            function updateTurnInfo(currentPlayer, winner, player2_connected) {
+            // --- Função: Atualizar Info de Turno e Fim de Jogo ---
+            function updateTurnInfo(currentPlayer, winner, player2_uuid) { // Alterado para _uuid
                 player1InfoEl.classList.remove('active');
                 player2InfoEl.classList.remove('active');
 
@@ -303,19 +306,18 @@
                     let winnerMessage = winnerName ? `${winnerName} Venceu!` : 'Empate!';
                     turnInfoEl.textContent = `Fim de Jogo! ${winnerMessage}`;
                 } else {
-                    if(!player2_connected) { // Usa _uuid aqui
+                    if(!player2_uuid) { // Usa _uuid aqui
                          turnInfoEl.textContent = "Aguardando Jogador 2...";
                          return;
                     }
                     
-                    const currentPlayerName = playerNames[currentPlayer]; // Usa nome
+                    const currentPlayerName = playerNames[currentPlayer]; 
                     const marker = currentPlayer === 1 ? 'X' : 'O';
                     if (playerId === currentPlayer) {
                         turnInfoEl.textContent = `É a sua vez, ${currentPlayerName} (${marker})!`;
                     } else {
                         turnInfoEl.textContent = `Vez de ${currentPlayerName} (${marker})`;
                     }
-                    // Adiciona classe ativa ao placar
                     if (currentPlayer === 1) player1InfoEl.classList.add('active');
                     else player2InfoEl.classList.add('active');
                 }
