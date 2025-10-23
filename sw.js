@@ -1,40 +1,31 @@
-const CACHE_NAME = 'jogos-online-cache-v1'; // Nova versão do cache
+const CACHE_NAME = 'jogos-online-cache-v1'; 
 const URLS_TO_CACHE = [
-  '/',                // A raiz do site
-  'index.html',       // A página do Lobby
-  'game.html',        // A página do Jogo da Memória
-  'tictactoe.html',   // A nova página do Jogo da Velha
+  '/',                
+  'index.html',       
+  'game.html',        
+  'tictactoe.html',   
   'manifest.json',
-  'icons/icon-192.png', // Verifique o nome exato do seu ícone
-  'icons/icon-512.png', // Verifique o nome exato do seu ícone
-  // URLs externas (Firebase)
+  'icons/icon-192.png', 
+  'icons/icon-512.png', 
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js'
 ];
 
-// Evento de Instalação: Salva os arquivos essenciais em cache
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Cache aberto');
         const promises = URLS_TO_CACHE.map(url => {
-            return cache.add(url).catch(err => {
-                console.warn(`Falha ao cachear ${url}: ${err}`);
-            });
+            return cache.add(url).catch(err => console.warn(`Falha ao cachear ${url}: ${err}`));
         });
         return Promise.all(promises);
       })
-      .then(() => {
-        console.log('Recursos essenciais cacheados.');
-      })
-      .catch(err => {
-        console.error('Falha crítica ao cachear:', err);
-      })
+      .then(() => console.log('Recursos essenciais cacheados.'))
+      .catch(err => console.error('Falha crítica ao cachear:', err))
   );
 });
 
-// Evento de Ativação: Limpa caches antigos
 self.addEventListener('activate', (event) => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -51,11 +42,14 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Evento de Fetch: Intercepta as requisições
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') {
-    return;
+  // *** INÍCIO DA CORREÇÃO ***
+  // Ignora requisições que não são GET ou que são de extensões
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+      //console.log('SW ignorando requisição:', event.request.url);
+      return; // Deixa o navegador lidar com a requisição normalmente
   }
+  // *** FIM DA CORREÇÃO ***
   
   event.respondWith(
     caches.match(event.request)
@@ -63,8 +57,6 @@ self.addEventListener('fetch', (event) => {
         if (response) {
           return response; // Serve do cache
         }
-
-        // Se não está no cache, busca na rede
         return fetch(event.request).then(
           (networkResponse) => {
             if (!networkResponse || networkResponse.status !== 200 || (networkResponse.type !== 'basic' && networkResponse.type !== 'cors')) {
@@ -73,13 +65,15 @@ self.addEventListener('fetch', (event) => {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME)
               .then((cache) => {
-                cache.put(event.request, responseToCache); // Salva no cache
+                // Verifica novamente se a URL é http/https antes de cachear (segurança extra)
+                if(event.request.url.startsWith('http')){
+                    cache.put(event.request, responseToCache); 
+                }
               });
             return networkResponse;
           }
         ).catch(error => {
-            console.warn('Fetch falhou; tentando servir do cache mesmo assim ou falhando.', error);
-            // Poderia retornar uma resposta offline aqui
+            console.warn('Fetch falhou; talvez offline?', error);
         });
       })
   );
