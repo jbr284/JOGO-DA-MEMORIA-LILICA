@@ -98,11 +98,11 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const urlGameId = urlParams.get('game');
                 
-                // Gera um ID de jogador único para este navegador e salva localmente
-                let myPlayerUUID = localStorage.getItem('jogoMemoriaUUID');
+                // *** CORREÇÃO: Usa sessionStorage, que é único por ABA ***
+                let myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
                 if (!myPlayerUUID) {
                     myPlayerUUID = Math.random().toString(36).substr(2, 9);
-                    localStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
+                    sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
                 }
 
                 if (urlGameId) {
@@ -157,6 +157,9 @@
                 gameStateRef = database.ref('games/' + gameId);
                 playerId = 1;
                 
+                // *** CORREÇÃO: Salva o UUID na sessionStorage da ABA ***
+                sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
+
                 const cardPairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
                 const initialBoard = {};
                 cardPairs.forEach((emoji, index) => {
@@ -261,12 +264,11 @@
                 });
             }
 
-            // --- Função: Verificar se é um Par (ATUALIZA O JGO) ---
+            // --- Função: Verificar se é um Par (ATUALIZA O JOGO) ---
             function checkForMatch(state) {
                 if (!state.flippedCards || state.flippedCards.length < 2) return; 
 
                 const [id1, id2] = state.flippedCards;
-                // Proteção extra caso o P2 clique ao mesmo tempo
                 if (!state.board[id1] || !state.board[id2]) return; 
                 
                 const card1 = state.board[id1];
@@ -338,11 +340,12 @@
                 }
             }
 
-            // --- Event Listeners ---
+            // --- Event Listeners (ATUALIZADO) ---
             resetButton.addEventListener('click', () => {
                 if (confirm('Tem certeza que deseja criar um NOVO jogo? O jogo atual será apagado.')) {
                     if (gameStateRef) gameStateRef.remove();
-                    localStorage.removeItem('jogoMemoriaUUID'); // Limpa o ID do jogador
+                    // *** CORREÇÃO: Limpa o sessionStorage da ABA ***
+                    sessionStorage.removeItem('jogoMemoriaUUID'); 
                     window.history.replaceState(null, null, window.location.pathname);
                     initGame(); // Usa a nova função de inicialização
                 }
