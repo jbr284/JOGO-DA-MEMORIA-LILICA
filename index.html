@@ -98,7 +98,6 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const urlGameId = urlParams.get('game');
                 
-                // *** CORREÇÃO: Usa sessionStorage, que é único por ABA ***
                 let myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
                 if (!myPlayerUUID) {
                     myPlayerUUID = Math.random().toString(36).substr(2, 9);
@@ -126,7 +125,11 @@
                                 // É o Jogador 2 entrando pela primeira vez
                                 playerId = 2;
                                 console.log("Jogador 2 entrando.");
+                                // *** INÍCIO DA CORREÇÃO ***
+                                // Salva o UUID do P2 no Firebase E no sessionStorage local
                                 gameStateRef.update({ player2: true, player2_uuid: myPlayerUUID });
+                                sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
+                                // *** FIM DA CORREÇÃO ***
                             } else {
                                 // Sala está cheia
                                 alert("Esta sala está cheia! Criando um novo jogo para você.");
@@ -157,7 +160,6 @@
                 gameStateRef = database.ref('games/' + gameId);
                 playerId = 1;
                 
-                // *** CORREÇÃO: Salva o UUID na sessionStorage da ABA ***
                 sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
 
                 const cardPairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
@@ -344,7 +346,6 @@
             resetButton.addEventListener('click', () => {
                 if (confirm('Tem certeza que deseja criar um NOVO jogo? O jogo atual será apagado.')) {
                     if (gameStateRef) gameStateRef.remove();
-                    // *** CORREÇÃO: Limpa o sessionStorage da ABA ***
                     sessionStorage.removeItem('jogoMemoriaUUID'); 
                     window.history.replaceState(null, null, window.location.pathname);
                     initGame(); // Usa a nova função de inicialização
