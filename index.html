@@ -27,10 +27,10 @@
         h1 { color: var(--text-color); margin-top: 0; margin-bottom: 25px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .form-group input[type="text"], .form-group input[type="text"] { /* Unificado */
+        .form-group input[type="text"], .form-group input[type="text"] {
             width: 100%;
             padding: 12px;
-            font-size: 1.1em; /* Ajustado */
+            font-size: 1.1em;
             text-align: center;
             background-color: var(--bg-color);
             border: 2px solid var(--text-color);
@@ -38,9 +38,7 @@
             border-radius: 8px;
             box-sizing: border-box;
         }
-        .form-group input#game-id-input { /* ID da sala continua minúsculo */
-             text-transform: lowercase;
-        }
+        .form-group input#game-id-input { text-transform: lowercase; }
         button {
             width: 100%;
             padding: 15px;
@@ -56,25 +54,9 @@
         }
         button:hover { background-color: #c93048; }
         button:disabled { background-color: #555; cursor: not-allowed; }
-        .separator {
-            margin: 20px 0;
-            font-weight: bold;
-            color: var(--accent-color);
-            opacity: 0.6;
-        }
-        .game-selection {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-        }
-        .game-selection legend {
-            font-weight: bold;
-            color: var(--accent-color);
-            margin-bottom: 10px;
-            font-size: 1.1em;
-            text-align: left;
-        }
+        .separator { margin: 20px 0; font-weight: bold; color: var(--accent-color); opacity: 0.6; }
+        .game-selection { margin-bottom: 20px; padding: 15px; background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; }
+        .game-selection legend { font-weight: bold; color: var(--accent-color); margin-bottom: 10px; font-size: 1.1em; text-align: left; }
         .game-options { display: flex; justify-content: space-around; }
         .game-options label { cursor: pointer; padding: 8px 15px; border-radius: 6px; transition: background-color 0.3s; }
         .game-options input[type="radio"] { margin-right: 8px; transform: scale(1.1); }
@@ -143,10 +125,15 @@
             const createBtn = document.getElementById('create-game-btn');
             const joinBtn = document.getElementById('join-game-btn');
             const gameIdInput = document.getElementById('game-id-input');
-            const playerNameInput = document.getElementById('player-name-input'); // NOVO
-            const memoryEmojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼']; 
+            const playerNameInput = document.getElementById('player-name-input'); 
+            
+            // *** CORREÇÃO: Lista de emojis para o Jogo da Memória (18 pares) ***
+            const memoryEmojis = [
+                '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', 
+                '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔',
+                '🐧', '🐦' 
+            ]; 
 
-            // Recupera nome salvo na sessão, se houver (NOVO)
             playerNameInput.value = sessionStorage.getItem('jogoMemoriaPlayerName') || '';
 
             let myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
@@ -155,7 +142,6 @@
                 sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
             }
 
-            // Função para validar e pegar o nome (NOVO)
             function getPlayerName() {
                 const name = playerNameInput.value.trim();
                 if (!name) {
@@ -163,15 +149,14 @@
                     playerNameInput.focus();
                     return null;
                 }
-                // Salva o nome na sessão para futuras visitas
                 sessionStorage.setItem('jogoMemoriaPlayerName', name);
                 return name;
             }
 
-            // --- JOGADOR 1: Criar Sala (Atualizado) ---
+            // --- JOGADOR 1: Criar Sala ---
             createBtn.addEventListener('click', async () => { 
-                const playerName = getPlayerName(); // Pega o nome
-                if (!playerName) return; // Se o nome for inválido, para aqui
+                const playerName = getPlayerName(); 
+                if (!playerName) return; 
 
                 createBtn.disabled = true; 
                 createBtn.textContent = 'Criando...';
@@ -184,17 +169,19 @@
                     gameId: gameId,
                     gameType: selectedGameType, 
                     player1_uuid: myPlayerUUID,
-                    player1_name: playerName, // Salva o nome do P1 (NOVO)
+                    player1_name: playerName, 
                     player2_uuid: null,
-                    player2_name: null,       // Nome do P2 inicial é null (NOVO)
+                    player2_name: null,       
                     currentPlayer: 1,
                     winner: null
                 };
 
+                // Usa a lista CORRETA de emojis (18)
                 if (selectedGameType === 'memory') {
-                    const cardPairs = [...memoryEmojis, ...memoryEmojis].sort(() => 0.5 - Math.random());
+                    const cardPairs = [...memoryEmojis, ...memoryEmojis].sort(() => 0.5 - Math.random()); 
                     initialState.board = {};
-                    cardPairs.forEach((emoji, index) => {
+                    // Cria 36 cartas (índices 0 a 35)
+                    cardPairs.forEach((emoji, index) => { 
                         initialState.board[index] = { id: index, emoji: emoji, isFlipped: false, isMatched: false };
                     });
                     initialState.scores = { 1: 0, 2: 0 };
@@ -220,10 +207,10 @@
                 }
             });
 
-            // --- JOGADOR 2: Entrar na Sala (Atualizado) ---
+            // --- JOGADOR 2: Entrar na Sala ---
             joinBtn.addEventListener('click', () => {
-                const playerName = getPlayerName(); // Pega o nome
-                if (!playerName) return; // Se o nome for inválido, para aqui
+                const playerName = getPlayerName(); 
+                if (!playerName) return; 
 
                 const gameId = gameIdInput.value.toLowerCase().trim();
                 if (!gameId) {
@@ -239,9 +226,7 @@
                     if (snapshot.exists()) {
                         const state = snapshot.val();
                         
-                        // Verifica se a vaga P2 está vazia OU se quem está entrando É o P2 que já estava lá
                         if (!state.player2_uuid || state.player2_uuid === myPlayerUUID) { 
-                            // Antes de redirecionar, salva o nome do P2 se for a primeira vez (NOVO)
                             if (!state.player2_uuid) {
                                 gameStateRef.update({ player2_name: playerName }); 
                             }
