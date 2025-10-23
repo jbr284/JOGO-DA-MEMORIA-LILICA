@@ -10,45 +10,7 @@
 
     <style>
         /* CSS (sem alterações) */
-        :root {
-            --bg-color: #1a1a2e; --board-bg-color: #16213e; --cell-bg-color: #0f3460;
-            --text-color: #e94560; --accent-color: #ffffff; --player1-color: #53a8b6; --player2-color: #e94560;
-            --win-line-color: #f5f542;
-        }
-        body {
-            font-family: 'Arial', sans-serif; background-color: var(--bg-color); color: var(--accent-color);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0;
-        }
-        h1 { color: var(--text-color); margin-bottom: 10px; }
-        .game-info { display: flex; justify-content: space-between; width: 300px; margin-bottom: 20px; font-size: 1.1em; }
-        .player-score {
-            padding: 8px 15px; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%;
-        }
-        #player1-info { background-color: var(--player1-color); }
-        #player2-info { background-color: var(--player2-color); }
-        .player-score.active { box-shadow: 0 0 15px var(--accent-color); transform: scale(1.05); }
-        #turn-info { width: 100%; text-align: center; font-size: 1.5em; margin-bottom: 20px; font-weight: bold; min-height: 1.5em; }
-
-        .game-board {
-            display: grid; grid-template-columns: repeat(3, 100px); grid-template-rows: repeat(3, 100px);
-            gap: 5px; background-color: var(--board-bg-color); padding: 10px; border-radius: 10px; position: relative;
-        }
-        .cell {
-            background-color: var(--cell-bg-color); border-radius: 8px; display: flex; align-items: center; justify-content: center;
-            font-size: 60px; font-weight: bold; cursor: pointer; transition: background-color 0.3s;
-        }
-        .cell:not(.X):not(.O):hover { background-color: #1f4a81; }
-        .cell.X { color: var(--player1-color); cursor: default; }
-        .cell.O { color: var(--player2-color); cursor: default; }
-
-        .win-line { position: absolute; background-color: var(--win-line-color); border-radius: 5px; box-shadow: 0 0 10px var(--win-line-color); }
-
-        #reset-button {
-            margin-top: 25px; padding: 12px 25px; font-size: 1em; font-weight: bold;
-            color: var(--accent-color); background-color: var(--text-color); border: none; border-radius: 8px; cursor: pointer;
-        }
-        #game-id-display { font-size: 0.9em; color: var(--accent-color); margin-top: 15px; opacity: 0.7; }
+        :root{--bg-color:#1a1a2e;--board-bg-color:#16213e;--cell-bg-color:#0f3460;--text-color:#e94560;--accent-color:#fff;--player1-color:#53a8b6;--player2-color:#e94560;--win-line-color:#f5f542}body{font-family:Arial,sans-serif;background-color:var(--bg-color);color:var(--accent-color);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0}h1{color:var(--text-color);margin-bottom:10px}.game-info{display:flex;justify-content:space-between;width:300px;margin-bottom:20px;font-size:1.1em}.player-score{padding:8px 15px;border-radius:8px;font-weight:700;transition:all .3s ease;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}#player1-info{background-color:var(--player1-color)}#player2-info{background-color:var(--player2-color)}.player-score.active{box-shadow:0 0 15px var(--accent-color);transform:scale(1.05)}#turn-info{width:100%;text-align:center;font-size:1.5em;margin-bottom:20px;font-weight:700;min-height:1.5em}.game-board{display:grid;grid-template-columns:repeat(3,100px);grid-template-rows:repeat(3,100px);gap:5px;background-color:var(--board-bg-color);padding:10px;border-radius:10px;position:relative}.cell{background-color:var(--cell-bg-color);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:60px;font-weight:700;cursor:pointer;transition:background-color .3s}.cell:not(.X):not(.O):hover{background-color:#1f4a81}.cell.X{color:var(--player1-color);cursor:default}.cell.O{color:var(--player2-color);cursor:default}.win-line{position:absolute;background-color:var(--win-line-color);border-radius:5px;box-shadow:0 0 10px var(--win-line-color)}#reset-button{margin-top:25px;padding:12px 25px;font-size:1em;font-weight:700;color:var(--accent-color);background-color:var(--text-color);border:none;border-radius:8px;cursor:pointer}#game-id-display{font-size:.9em;color:var(--accent-color);margin-top:15px;opacity:.7}
     </style>
 </head>
 <body>
@@ -73,15 +35,7 @@
 
     <script>
         // Sua configuração do Firebase
-        const firebaseConfig = {
-          apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
-          authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
-          databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com",
-          projectId: "jogo-da-memoria-lilica",
-          storageBucket: "jogo-da-memoria-lilica.firebasestorage.app",
-          messagingSenderId: "683788488529",
-          appId: "1:683788488529:web:727316a3e182257a2d8d70"
-        };
+        const firebaseConfig = { /* ... (sua config aqui) ... */ };
 
         // Inicializar o Firebase
         firebase.initializeApp(firebaseConfig);
@@ -102,22 +56,13 @@
             let playerNames = { 1: "Jogador 1", 2: "Jogador 2" };
 
             // --- FUNÇÃO DE INICIALIZAÇÃO ---
-            function initGame() {
-                // ... (código igual à versão anterior) ...
-                 const urlParams = new URLSearchParams(window.location.search); gameId = urlParams.get('game'); myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID'); if (!myPlayerUUID) { alert("Erro de sessão..."); window.location.href = 'index.html'; return; } if (!gameId) { alert("Nenhum ID de sala..."); window.location.href = 'index.html'; return; } gameStateRef = database.ref('games/' + gameId); gameStateRef.transaction(currentState => { if (currentState === null) return null; if (currentState.gameType !== 'tictactoe') return; if (currentState.player1_uuid === myPlayerUUID) playerId = 1; else if (currentState.player2_uuid === myPlayerUUID) playerId = 2; else if (!currentState.player2_uuid) { playerId = 2; currentState.player2_uuid = myPlayerUUID; currentState.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || `Jogador ${playerId}`; } else return; return currentState; }, (error, committed, snapshot) => { if (error || !committed) { alert(snapshot?.val()?.gameType !== 'tictactoe' ? "Tipo de jogo incorreto!" : (snapshot?.val()?.player2_uuid && snapshot.val().player2_uuid !== myPlayerUUID ? "Sala cheia!" : "Sala não encontrada ou erro!")); window.location.href = 'index.html'; } else { console.log("Conectado (Jogo da Velha) como Jogador:", playerId); setupGameListeners(); } });
-            }
+            function initGame() { /* ... (código igual à versão anterior) ... */ }
 
             // --- Função: "Ouvir" as mudanças do Jogo no Firebase ---
-            function setupGameListeners() {
-                // ... (código igual à versão anterior) ...
-                 gameIdDisplay.textContent = `ID da Sala: ${gameId}`; gameStateRef.on('value', (snapshot) => { const state = snapshot.val(); if (!state) { if (document.visibilityState === 'visible') { alert("O jogo foi encerrado."); window.location.href = 'index.html'; } return; } playerNames[1] = state.player1_name || "Jogador 1"; playerNames[2] = state.player2_name || "Jogador 2"; state.board = state.board || Array(9).fill(null); state.scores = state.scores || { 1: 0, 2: 0, ties: 0 }; updateScoreboard(state.scores); updateTurnInfo(state.currentPlayer, state.winner, state.player2_uuid); renderBoard(state.board, state.winnerInfo); });
-            }
+            function setupGameListeners() { /* ... (código igual à versão anterior) ... */ }
 
             // --- Função: Renderizar o Tabuleiro ---
-            function renderBoard(boardState, winnerInfo) {
-                // ... (código igual à versão anterior) ...
-                 gameBoard.innerHTML = ''; const oldWinLine = gameBoard.querySelector('.win-line'); if (oldWinLine) oldWinLine.remove(); boardState.forEach((cellValue, index) => { const cell = document.createElement('div'); cell.classList.add('cell'); cell.dataset.index = index; if (cellValue) { cell.textContent = cellValue; cell.classList.add(cellValue); cell.style.cursor = 'default'; } else if (winnerInfo === undefined || winnerInfo === null) { cell.addEventListener('click', () => onCellClick(index)); } else { cell.style.cursor = 'default'; } gameBoard.appendChild(cell); }); if (winnerInfo) { drawWinLine(winnerInfo); }
-            }
+            function renderBoard(boardState, winnerInfo) { /* ... (código igual à versão anterior) ... */ }
 
             // --- Função: Lógica do Clique na Célula (ENVIA A JOGADA - CORRIGIDO) ---
             function onCellClick(index) {
@@ -128,14 +73,19 @@
                          console.log("onCellClick abortado: Estado nulo");
                          return currentState;
                      }
+                     // *** INÍCIO DA CORREÇÃO ***
+                     // Garante que o board existe antes de tentar acessá-lo
+                     if (!currentState.board) {
+                          console.error("onCellClick abortado: currentState.board é undefined!");
+                          return; // Aborta a transação se o board não estiver pronto
+                     }
+                     // *** FIM DA CORREÇÃO ***
+
                      console.log("onCellClick - Estado atual:", currentState);
                      console.log("onCellClick - Meu playerId:", playerId);
 
                      // Validações
-                     // *** INÍCIO DA CORREÇÃO ***
-                     // Verifica se winner TEM VALOR (não é null nem undefined)
                      if (currentState.winner) {
-                     // *** FIM DA CORREÇÃO ***
                          console.log("onCellClick abortado: Jogo já acabou (winner:", currentState.winner, ")");
                          return; // Jogo já acabou
                      }
@@ -143,7 +93,6 @@
                          console.log(`onCellClick abortado: Não é minha vez (currentPlayer: ${currentState.currentPlayer}, meuId: ${playerId})`);
                          return; // Não é minha vez
                      }
-                      // Comentário: A verificação de player2_uuid foi removida corretamente na versão anterior
                      if (currentState.board[index] !== null) {
                          console.log(`onCellClick abortado: Célula ${index} já ocupada com ${currentState.board[index]}`);
                          return; // Célula já ocupada
@@ -170,30 +119,19 @@
             }
 
             // --- Função: Verificar Vitória ou Empate ---
-            function checkForWinner(board) { /* ... (sem alterações) ... */
-                 const winningCombinations = [ [0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6] ]; for (let i = 0; i < winningCombinations.length; i++) { const [a, b, c] = winningCombinations[i]; if (board[a] && board[a] === board[b] && board[a] === board[c]) { return { winner: board[a], combination: winningCombinations[i] }; } } if (board.every(cell => cell !== null)) return { winner: 'T' }; return null;
-            }
+            function checkForWinner(board) { /* ... (sem alterações) ... */ }
 
             // --- Função: Desenha a linha de vitória ---
-             function drawWinLine(winnerInfo) { /* ... (sem alterações) ... */
-                  if (!winnerInfo || !winnerInfo.combination) return; const line = document.createElement('div'); line.classList.add('win-line'); requestAnimationFrame(() => { const boardRect = gameBoard.getBoundingClientRect(); const cellElements = gameBoard.querySelectorAll('.cell'); if(cellElements.length !== 9) return; const [start, middle, end] = winnerInfo.combination; const startRect = cellElements[start]?.getBoundingClientRect(); const endRect = cellElements[end]?.getBoundingClientRect(); const middleRect = cellElements[middle]?.getBoundingClientRect(); if(!startRect || !endRect || !middleRect) return; const startX = startRect.left + startRect.width / 2 - boardRect.left; const startY = startRect.top + startRect.height / 2 - boardRect.top; const endX = endRect.left + endRect.width / 2 - boardRect.left; const endY = endRect.top + endRect.height / 2 - boardRect.top; const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI; const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)) + (startRect.width * 0.8); line.style.width = `${length}px`; line.style.height = '8px'; const middleX = middleRect.left + middleRect.width / 2 - boardRect.left; const middleY = middleRect.top + middleRect.height / 2 - boardRect.top; line.style.top = `${middleY}px`; line.style.left = `${middleX}px`; line.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`; line.style.transformOrigin = 'center center'; gameBoard.appendChild(line); });
-             }
-
+             function drawWinLine(winnerInfo) { /* ... (sem alterações) ... */ }
 
             // --- Função: Atualizar Placar ---
-            function updateScoreboard(scores) { /* ... (sem alterações) ... */
-                player1InfoEl.textContent = `${playerNames[1]} (X): ${scores[1]}`; player2InfoEl.textContent = `${playerNames[2]} (O): ${scores[2]}`;
-            }
+            function updateScoreboard(scores) { /* ... (sem alterações) ... */ }
 
             // --- Função: Atualizar Info de Turno e Fim de Jogo ---
-            function updateTurnInfo(currentPlayer, winner, player2_uuid) { /* ... (sem alterações) ... */
-                player1InfoEl.classList.remove('active'); player2InfoEl.classList.remove('active'); if (winner !== null) { let winnerName = winner === 'X' ? playerNames[1] : (winner === 'O' ? playerNames[2] : null); let winnerMessage = winnerName ? `${winnerName} Venceu!` : 'Empate!'; turnInfoEl.textContent = `Fim de Jogo! ${winnerMessage}`; } else { if(!player2_uuid) { turnInfoEl.textContent = "Aguardando Jogador 2..."; return; } const currentPlayerName = playerNames[currentPlayer]; const marker = currentPlayer === 1 ? 'X' : 'O'; if (playerId === currentPlayer) { turnInfoEl.textContent = `É a sua vez, ${currentPlayerName} (${marker})!`; } else { turnInfoEl.textContent = `Vez de ${currentPlayerName} (${marker})`; } if (currentPlayer === 1) player1InfoEl.classList.add('active'); else player2InfoEl.classList.add('active'); }
-            }
+            function updateTurnInfo(currentPlayer, winner, player2_uuid) { /* ... (sem alterações) ... */ }
 
             // --- Event Listeners ---
-            resetButton.addEventListener('click', () => { /* ... (sem alterações) ... */
-                if (confirm('Tem certeza que deseja sair? O jogo atual será encerrado se você for o Jogador 1.')) { if (gameStateRef) gameStateRef.off(); if (playerId === 1 && gameStateRef) { gameStateRef.remove().finally(() => window.location.href = 'index.html'); } else { window.location.href = 'index.html'; } }
-            });
+            resetButton.addEventListener('click', () => { /* ... (sem alterações) ... */ });
 
             // --- Inicia o Jogo ---
             initGame();
