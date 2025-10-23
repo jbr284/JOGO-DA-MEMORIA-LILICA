@@ -14,19 +14,13 @@
     </style>
 </head>
 <body>
-
     <h1>Jogo da Velha Online</h1>
-
     <div class="game-info">
         <div id="player1-info" class="player-score">X (P1): 0</div>
         <div id="player2-info" class="player-score">O (P2): 0</div>
     </div>
-
     <div id="turn-info">Conectando...</div>
-
-    <div class="game-board" id="game-board">
-        </div>
-
+    <div class="game-board" id="game-board"></div>
     <button id="reset-button">Voltar ao Lobby</button>
     <div id="game-id-display"></div>
 
@@ -34,72 +28,74 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
     <script>
-        // Sua configuração do Firebase
-        const firebaseConfig = {
-          apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
-          authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
-          databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com",
-          projectId: "jogo-da-memoria-lilica",
-          storageBucket: "jogo-da-memoria-lilica.firebasestorage.app",
-          messagingSenderId: "683788488529",
-          appId: "1:683788488529:web:727316a3e182257a2d8d70"
-        };
-
-        // *** INÍCIO DA CORREÇÃO DE ESCOPO ***
-        let database; // Declara a variável aqui, fora do try/catch
-        try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database(); // Atribui o valor aqui dentro
-            console.log("Firebase inicializado com sucesso.");
-        } catch (e) {
-            console.error("ERRO FATAL AO INICIALIZAR FIREBASE:", e);
-            alert("Erro crítico ao inicializar. Verifique a configuração do Firebase.");
-            // Impede a execução do resto do script se a inicialização falhar
-            throw new Error("Falha na inicialização do Firebase");
-        }
-        // *** FIM DA CORREÇÃO DE ESCOPO ***
+        // Firebase Config
+        const firebaseConfig = { /* ... (sua config aqui) ... */ };
+        let database; 
+        try { firebase.initializeApp(firebaseConfig); database = firebase.database(); console.log("Firebase inicializado."); } 
+        catch (e) { console.error("ERRO FIREBASE:", e); alert("Erro Firebase."); throw new Error("Falha Firebase"); }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // ... (variáveis e seletores DOM iguais) ...
             const gameBoard = document.getElementById('game-board');
             const player1InfoEl = document.getElementById('player1-info');
             const player2InfoEl = document.getElementById('player2-info');
             const turnInfoEl = document.getElementById('turn-info');
             const resetButton = document.getElementById('reset-button');
             const gameIdDisplay = document.getElementById('game-id-display');
-
-            let gameStateRef;
-            let gameId;
-            let playerId;
-            let myPlayerUUID;
+            let gameStateRef, gameId, playerId, myPlayerUUID;
             let playerNames = { 1: "Jogador 1", 2: "Jogador 2" };
 
             // --- FUNÇÃO DE INICIALIZAÇÃO ---
-            function initGame() {
-                console.log("Iniciando initGame...");
-                const urlParams = new URLSearchParams(window.location.search);
-                gameId = urlParams.get('game');
-
-                myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
-                if (!myPlayerUUID) { console.error("Erro fatal: UUID não encontrado."); alert("Erro de sessão..."); window.location.href = 'index.html'; return; }
-                if (!gameId) { console.error("Erro fatal: gameId não encontrado na URL."); alert("Nenhum ID de sala..."); window.location.href = 'index.html'; return; }
-
-                console.log(`initGame: Tentando conectar à sala ${gameId} com UUID ${myPlayerUUID}`);
-                // A verificação de 'database' agora deve passar
-                if (typeof database === 'undefined' || !database) {
-                     console.error("initGame: Instância do Database ainda não está definida! Isso não deveria acontecer.");
-                     alert("Erro na conexão com o banco de dados.");
-                     return;
-                }
-                gameStateRef = database.ref('games/' + gameId);
-
-                // ... (resto da função initGame igual) ...
-                 gameStateRef.transaction(currentState => { console.log("initGame - Dentro da transação. Estado atual recebido:", currentState); if (currentState === null) { console.log("Transação abortada: Sala não existe (currentState é null)."); return null; } if (currentState.gameType !== 'tictactoe') { console.log("Transação abortada: Tipo de jogo incorreto."); return; } if (currentState.player1_uuid === myPlayerUUID) playerId = 1; else if (currentState.player2_uuid === myPlayerUUID) playerId = 2; else if (!currentState.player2_uuid) { playerId = 2; currentState.player2_uuid = myPlayerUUID; currentState.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || `Jogador ${playerId}`; } else { console.log("Transação abortada: Sala cheia."); return; } console.log(`initGame - Transação: Estado a ser salvo com playerId ${playerId}:`, currentState); return currentState; }, (error, committed, snapshot) => { console.log(`initGame - Resultado da transação: error=${error}, committed=${committed}`); if (error) { console.error("Erro na transação initGame:", error); alert("Erro ao tentar conectar à sala. Voltando ao Lobby."); window.location.href = 'index.html'; } else if (!committed) { console.warn("Transação initGame não commitada. Estado final lido:", snapshot?.val()); alert(snapshot?.val()?.gameType !== 'tictactoe' ? "Tipo de jogo incorreto!" : (snapshot?.val()?.player2_uuid && snapshot.val().player2_uuid !== myPlayerUUID ? "Sala cheia!" : "Sala não encontrada!")); window.location.href = 'index.html'; } else { console.log("initGame: Transação OK. Conectado como Jogador:", playerId); setupGameListeners(); } });
-            }
+            function initGame() { /* ... (código igual) ... */ }
 
             // --- Função: "Ouvir" as mudanças do Jogo no Firebase ---
-            function setupGameListeners() { /* ... (código igual) ... */ }
-            // --- Função: Renderizar o Tabuleiro ---
-            function renderBoard(boardState, winnerInfo) { /* ... (código igual) ... */ }
+            function setupGameListeners() { /* ... (código igual, chama renderBoard) ... */ }
+
+            // --- Função: Renderizar o Tabuleiro (SIMPLIFICADA e COM LOG NO FINAL) ---
+            function renderBoard(boardState, winnerInfo) {
+                 console.log("renderBoard: Iniciando renderização com board:", boardState); // LOG INÍCIO
+                 gameBoard.innerHTML = ''; // Limpa tabuleiro anterior
+
+                 // Verifica se boardState é válido
+                 if (!boardState || !Array.isArray(boardState) || boardState.length !== 9) {
+                     console.error("renderBoard: Estado do tabuleiro inválido recebido:", boardState);
+                     turnInfoEl.textContent = "Erro ao carregar tabuleiro!";
+                     // Renderiza 9 células vazias como fallback
+                     boardState = Array(9).fill(null); 
+                 }
+
+                 // Cria as 9 células
+                 boardState.forEach((cellValue, index) => {
+                     const cell = document.createElement('div');
+                     cell.classList.add('cell');
+                     cell.dataset.index = index;
+
+                     if (cellValue) {
+                         cell.textContent = cellValue;
+                         cell.classList.add(cellValue); // Adiciona classe X ou O
+                         cell.style.cursor = 'default';
+                     } else if (!winnerInfo) { // Permite clique apenas se a célula está vazia E o jogo não acabou
+                         cell.addEventListener('click', () => onCellClick(index));
+                     } else {
+                         cell.style.cursor = 'default'; // Jogo acabou
+                     }
+                     gameBoard.appendChild(cell); // Adiciona a célula ao tabuleiro
+                 });
+
+                 // Remove linha de vitória antiga (caso exista de um estado anterior)
+                 const oldWinLine = gameBoard.querySelector('.win-line');
+                 if (oldWinLine) oldWinLine.remove();
+                 
+                 // Desenha a linha de vitória, se houver
+                 if (winnerInfo) {
+                     console.log("renderBoard: Desenhando linha de vitória para:", winnerInfo);
+                     drawWinLine(winnerInfo);
+                 }
+
+                 console.log("renderBoard: Renderização do tabuleiro CONCLUÍDA."); // LOG FINAL
+            }
+
+
             // --- Função: Lógica do Clique na Célula ---
             function onCellClick(index) { /* ... (código igual) ... */ }
             // --- Função: Verificar Vitória ou Empate ---
