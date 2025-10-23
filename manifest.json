@@ -1,7 +1,7 @@
 {
-  "name": "Jogos Online",            
-  "short_name": "Jogos",           
-  "description": "Jogo da Memória e Jogo da Velha multiplayer online.", 
+  "name": "Jogo da Memória Online",            
+  "short_name": "Jogo da Memória",           
+  "description": "Jogo da memória multiplayer online de dois jogadores.", 
   "start_url": "index.html",           
   "display": "standalone",
   "background_color": "#1a1a2e",
