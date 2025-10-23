@@ -90,63 +90,73 @@
 
             let gameStateRef; 
             let gameId;       
-            let playerId;     
+            let playerId;     // Será 1 ou 2
             let lockBoard = false;
 
-            // --- FUNÇÃO DE INICIALIZAÇÃO (NOVA LÓGICA) ---
+            // --- FUNÇÃO DE INICIALIZAÇÃO (LÓGICA CORRIGIDA) ---
             function initGame() {
                 const urlParams = new URLSearchParams(window.location.search);
                 const urlGameId = urlParams.get('game');
                 
-                const localData = JSON.parse(localStorage.getItem('jogoMemoria'));
-                
+                // Gera um ID de jogador único para este navegador e salva localmente
+                let myPlayerUUID = localStorage.getItem('jogoMemoriaUUID');
+                if (!myPlayerUUID) {
+                    myPlayerUUID = Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
+                }
+
                 if (urlGameId) {
-                    // Um ID de jogo está na URL
-                    if (localData && localData.gameId === urlGameId) {
-                        // É um jogador existente (J1 ou J2) recarregando a página
-                        console.log("Jogador existente recarregou.");
-                        gameId = localData.gameId;
-                        playerId = localData.playerId;
-                        gameStateRef = database.ref('games/' + gameId);
-                        setupGameListeners();
-                    } else {
-                        // É um novo jogador (J2) entrando na sala
-                        console.log("Novo jogador (J2) entrando na sala.");
-                        gameId = urlGameId;
-                        gameStateRef = database.ref('games/' + gameId);
-                        
-                        gameStateRef.once('value', (snapshot) => {
-                            if (snapshot.exists() && snapshot.val().player2 === null) {
-                                // Sala existe e tem vaga. Entra como Jogador 2.
+                    // --- Lógica para quem entra com um link (J2 ou P1/P2 recarregando) ---
+                    gameId = urlGameId;
+                    gameStateRef = database.ref('games/' + gameId);
+                    
+                    gameStateRef.once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            const state = snapshot.val();
+                            
+                            if (state.player1_uuid === myPlayerUUID) {
+                                // É o Jogador 1 recarregando a página
+                                playerId = 1;
+                                console.log("Jogador 1 recarregou.");
+                            } else if (state.player2_uuid === myPlayerUUID) {
+                                // É o Jogador 2 recarregando
                                 playerId = 2;
-                                gameStateRef.update({ player2: true });
-                                localStorage.setItem('jogoMemoria', JSON.stringify({ gameId: gameId, playerId: 2 }));
-                                setupGameListeners();
+                                console.log("Jogador 2 recarregou.");
+                            } else if (state.player2 === null) {
+                                // É o Jogador 2 entrando pela primeira vez
+                                playerId = 2;
+                                console.log("Jogador 2 entrando.");
+                                gameStateRef.update({ player2: true, player2_uuid: myPlayerUUID });
                             } else {
-                                // Sala não existe ou está cheia.
-                                console.log("Sala não encontrada ou cheia. Criando novo jogo.");
-                                createNewGame();
+                                // Sala está cheia
+                                alert("Esta sala está cheia! Criando um novo jogo para você.");
+                                createNewGame(myPlayerUUID); // Cria um novo jogo
+                                return;
                             }
-                        });
-                    }
+                            setupGameListeners(); // Conecta ao jogo
+                        } else {
+                            // Sala na URL não existe
+                            alert("Sala não encontrada! Criando um novo jogo.");
+                            window.history.replaceState(null, null, window.location.pathname); // Limpa a URL
+                            createNewGame(myPlayerUUID); // Cria um novo jogo
+                        }
+                    });
+
                 } else {
-                    // Nenhum ID de jogo na URL. É o Jogador 1 criando um jogo.
+                    // --- Lógica do Jogador 1 (Criando) ---
                     console.log("Nenhum ID na URL. Criando novo jogo.");
-                    createNewGame();
+                    createNewGame(myPlayerUUID);
                 }
             }
             
             // --- Função: Criar um Novo Jogo (ATUALIZADA) ---
-            function createNewGame() {
+            function createNewGame(myPlayerUUID) {
                 gameId = Math.random().toString(36).substr(2, 6);
-                window.history.replaceState(null, null, "?game=" + gameId); // Atualiza a URL
+                window.history.replaceState(null, null, "?game=" + gameId); 
                 
                 gameStateRef = database.ref('games/' + gameId);
                 playerId = 1;
                 
-                // Salva no localStorage quem eu sou
-                localStorage.setItem('jogoMemoria', JSON.stringify({ gameId: gameId, playerId: 1 }));
-
                 const cardPairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
                 const initialBoard = {};
                 cardPairs.forEach((emoji, index) => {
@@ -156,7 +166,9 @@
                 gameStateRef.set({
                     gameId: gameId,
                     player1: true,
+                    player1_uuid: myPlayerUUID, // Salva o ID único do P1
                     player2: null,
+                    player2_uuid: null,        // Sala vaga para P2
                     currentPlayer: 1,
                     scores: { 1: 0, 2: 0 },
                     board: initialBoard,
@@ -165,7 +177,7 @@
                     winner: null
                 });
                 
-                setupGameListeners(); // Inicia o "ouvinte" SÓ DEPOIS de criar o jogo
+                setupGameListeners(); 
             }
             
             // --- Função: "Ouvir" as mudanças do Jogo no Firebase ---
@@ -175,10 +187,7 @@
                 gameStateRef.on('value', (snapshot) => {
                     const state = snapshot.val();
                     if (!state) {
-                        // Jogo foi deletado (reset)
-                        turnInfoEl.textContent = "O jogo foi reiniciado. Crie um novo jogo.";
-                        localStorage.removeItem('jogoMemoria');
-                        window.history.replaceState(null, null, window.location.pathname);
+                        turnInfoEl.textContent = "O jogo foi reiniciado.";
                         return;
                     } 
 
@@ -232,7 +241,7 @@
                 
                 gameStateRef.once('value', (snapshot) => {
                     const state = snapshot.val();
-                    if (!state) return; // Jogo não existe mais
+                    if (!state) return; 
                     
                     const stateFlippedCards = state.flippedCards || []; 
                     
@@ -252,12 +261,14 @@
                 });
             }
 
-            // --- Função: Verificar se é um Par (ATUALIZA O JOGO) ---
+            // --- Função: Verificar se é um Par (ATUALIZA O JGO) ---
             function checkForMatch(state) {
-                // Checa se os dados ainda são válidos (evita bugs se o outro jogador resetar)
                 if (!state.flippedCards || state.flippedCards.length < 2) return; 
 
                 const [id1, id2] = state.flippedCards;
+                // Proteção extra caso o P2 clique ao mesmo tempo
+                if (!state.board[id1] || !state.board[id2]) return; 
+                
                 const card1 = state.board[id1];
                 const card2 = state.board[id2];
                 
@@ -331,7 +342,7 @@
             resetButton.addEventListener('click', () => {
                 if (confirm('Tem certeza que deseja criar um NOVO jogo? O jogo atual será apagado.')) {
                     if (gameStateRef) gameStateRef.remove();
-                    localStorage.removeItem('jogoMemoria');
+                    localStorage.removeItem('jogoMemoriaUUID'); // Limpa o ID do jogador
                     window.history.replaceState(null, null, window.location.pathname);
                     initGame(); // Usa a nova função de inicialização
                 }
