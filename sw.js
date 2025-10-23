@@ -2,8 +2,7 @@ const CACHE_NAME = 'jogos-online-cache-v1';
 const URLS_TO_CACHE = [
   '/',                
   'index.html',       
-  'game.html',        
-  'tictactoe.html',   
+  'game.html',           
   'manifest.json',
   'icons/icon-192.png', 
   'icons/icon-512.png', 
@@ -78,3 +77,4 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
