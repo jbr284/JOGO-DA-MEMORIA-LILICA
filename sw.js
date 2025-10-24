@@ -1,80 +1,83 @@
-const CACHE_NAME = 'jogos-online-cache-v1'; 
-const URLS_TO_CACHE = [       
-  'index.html',       
-  'game.html',           
+// ===============================
+// SERVICE WORKER - VERSÃO FINAL
+// ===============================
+const CACHE_NAME = 'jogos-online-cache-v3'; // ← altere o número para forçar nova versão
+const FILES_TO_CACHE = [
+  'index.html',
+  'game.html',
   'manifest.json',
-  'icons/icon-192.png', 
-  'icons/icon-512.png', 
+  'icons/icon-192.png',
+  'icons/icon-512.png',
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js'
 ];
 
+// Instala o SW e faz o cache inicial
 self.addEventListener('install', (event) => {
+  console.log('[SW] Instalando nova versão...');
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Cache aberto');
-        const promises = URLS_TO_CACHE.map(url => {
-            return cache.add(url).catch(err => console.warn(`Falha ao cachear ${url}: ${err}`));
-        });
-        return Promise.all(promises);
+        console.log('[SW] Cache aberto:', CACHE_NAME);
+        return Promise.all(
+          FILES_TO_CACHE.map(async (url) => {
+            try {
+              await cache.add(url);
+              console.log('[SW] Cacheado:', url);
+            } catch (err) {
+              console.warn('[SW] Falha ao cachear:', url, err);
+            }
+          })
+        );
       })
-      .then(() => console.log('Recursos essenciais cacheados.'))
-      .catch(err => console.error('Falha crítica ao cachear:', err))
+      .then(() => self.skipWaiting()) // força ativação imediata
   );
 });
 
+// Ativa o novo SW e remove caches antigos
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
+  console.log('[SW] Ativando e limpando versões antigas...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            console.log('Deletando cache antigo:', cacheName);
-            return caches.delete(cacheName);
+        cacheNames.map((name) => {
+          if (name !== CACHE_NAME) {
+            console.log('[SW] Removendo cache antigo:', name);
+            return caches.delete(name);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
+// Estratégia de rede + cache (Network First)
 self.addEventListener('fetch', (event) => {
-  // *** INÍCIO DA CORREÇÃO ***
-  // Ignora requisições que não são GET ou que são de extensões
-  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
-      //console.log('SW ignorando requisição:', event.request.url);
-      return; // Deixa o navegador lidar com a requisição normalmente
-  }
-  // *** FIM DA CORREÇÃO ***
-  
+  // Ignora requisições não-HTTP (extensões, devtools, etc.)
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then((response) => {
-        if (response) {
-          return response; // Serve do cache
-        }
-        return fetch(event.request).then(
-          (networkResponse) => {
-            if (!networkResponse || networkResponse.status !== 200 || (networkResponse.type !== 'basic' && networkResponse.type !== 'cors')) {
-              return networkResponse;
-            }
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                // Verifica novamente se a URL é http/https antes de cachear (segurança extra)
-                if(event.request.url.startsWith('http')){
-                    cache.put(event.request, responseToCache); 
-                }
-              });
-            return networkResponse;
-          }
-        ).catch(error => {
-            console.warn('Fetch falhou; talvez offline?', error);
+        // Salva nova resposta no cache para uso futuro
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, clone);
         });
+        return response;
+      })
+      .catch(() => {
+        // Se offline, tenta pegar do cache
+        return caches.match(event.request)
+          .then((cached) => cached || caches.match('index.html'));
       })
   );
 });
 
-
+// Atualiza automaticamente os clientes abertos quando um novo SW é instalado
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
