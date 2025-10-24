@@ -51,22 +51,13 @@
             transition: transform 0.6s; cursor: pointer;
         }
         .card.flipped, .card.matched { transform: rotateY(180deg); cursor: default; }
-
-        /* Regra .card-face COM a correção anti-arraste */
         .card-face {
             position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
             border-radius: 6px; display: flex; align-items: center; justify-content: center;
             font-size: calc(var(--card-size) * 0.6);
-            /* Impedir seleção de texto */
-            -webkit-user-select: none; /* Safari */
-            -moz-user-select: none; /* Firefox */
-            -ms-user-select: none; /* IE/Edge */
-            user-select: none; /* Padrão */
-            /* Impedir arrastar */
-            -webkit-user-drag: none;
-            user-drag: none;
+            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+            -webkit-user-drag: none; user-drag: none;
         }
-
         .card-front { background-color: var(--card-flipped-color); transform: rotateY(180deg); }
         .card-back { background-color: var(--card-color); border: 2px solid var(--text-color); }
 
@@ -95,13 +86,13 @@
         // *** SUA CONFIGURAÇÃO REAL DO FIREBASE ***
         // Verifique se esta é a configuração do projeto JOGO DA MEMÓRIA
         const firebaseConfig = {
-    apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
-    authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
-    databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com",
-    projectId: "jogo-da-memoria-lilica",
-    storageBucket: "jogo-da-memoria-lilica.firebasestorage.app",
-    messagingSenderId: "683788488529",
-    appId: "1:683788488529:web:727316a3e182257a2d8d70"
+          apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc", // CONFIRME
+          authDomain: "jogo-da-memoria-lilica.firebaseapp.com", // CONFIRME
+          databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com", // CONFIRME
+          projectId: "jogo-da-memoria-lilica", // CONFIRME
+          storageBucket: "jogo-da-memoria-lilica.firebasestorage.app", // CONFIRME
+          messagingSenderId: "683788488529", // CONFIRME
+          appId: "1:683788488529:web:727316a3e182257a2d8d70" // CONFIRME
         };
         // *******************************************
         let database;
@@ -121,7 +112,7 @@
             let playerNames = { 1: "P1", 2: "P2" };
             let currentBoardState = {};
 
-            // --- FUNÇÃO DE INICIALIZAÇÃO (Lendo chaves genéricas) ---
+            // --- FUNÇÃO DE INICIALIZAÇÃO (Lendo chaves genéricas sessionStorage) ---
             function initGame() {
                  console.log("Iniciando initGame (Memória)...");
                  const urlParams = new URLSearchParams(window.location.search);
@@ -141,11 +132,10 @@
                  }
 
                  console.log(`Conectando sala ${gameId} com UUID ${myPlayerUUID}`);
-                 gameStateRef = database.ref('games/' + gameId); // <<<< CAMINHO PARA JOGO DA MEMÓRIA
+                 gameStateRef = database.ref('games/' + gameId); // <<<< CAMINHO CORRETO PARA JOGO DA MEMÓRIA
                  gameStateRef.transaction(currentState => {
                     if (currentState === null) return null;
-                    // Verifica o tipo de jogo para evitar conflitos
-                    if (currentState.gameType !== 'memory') { console.error("initGame TX abort: Tipo incorreto!"); return; }
+                    if (currentState.gameType !== 'memory') { console.error("initGame TX abort: Tipo incorreto!"); return; } // Verifica tipo
                     if (currentState.player1_uuid === myPlayerUUID) playerId = 1;
                     else if (currentState.player2_uuid === myPlayerUUID) playerId = 2;
                     else if (!currentState.player2_uuid) { playerId = 2; currentState.player2 = true; currentState.player2_uuid = myPlayerUUID; currentState.player2_name = myPlayerName;}
@@ -179,18 +169,8 @@
             // --- Função: Renderizar o Tabuleiro ---
             function renderBoard(newBoardState, oldBoardState, winner) {
                  gameBoard.innerHTML = '';
-                 // Garante que itera sobre as chaves numéricas corretas (0 a 35)
-                 const sortedKeys = Object.keys(newBoardState).map(Number).sort((a, b) => a - b);
-                 // Cria placeholders se o board não estiver completo (pode acontecer brevemente)
-                 const completeBoardData = {};
-                 for(let i=0; i<36; i++) completeBoardData[i] = newBoardState[i] || {id: i, emoji:'?', isFlipped: false, isMatched: false}; // Placeholder
-
-                 Object.values(completeBoardData).forEach(cardData => { // Usa o objeto completo
-                     const oldCardData = oldBoardState ? oldBoardState[cardData.id] : null;
-                     const cardEl = createCardElement(cardData);
-                     if (cardData.isMatched && (!oldCardData || !oldCardData.isMatched)) { cardEl.classList.add('play-match-animation'); setTimeout(() => cardEl.classList.remove('play-match-animation'), 700); }
-                     gameBoard.appendChild(cardEl);
-                 });
+                 const completeBoardData = {}; for(let i=0; i<36; i++) completeBoardData[i] = newBoardState[i] || {id: i, emoji:'?', isFlipped: false, isMatched: false};
+                 Object.values(completeBoardData).forEach(cardData => { const oldCardData = oldBoardState ? oldBoardState[cardData.id] : null; const cardEl = createCardElement(cardData); if (cardData.isMatched && (!oldCardData || !oldCardData.isMatched)) { cardEl.classList.add('play-match-animation'); setTimeout(() => cardEl.classList.remove('play-match-animation'), 700); } gameBoard.appendChild(cardEl); });
                  playAgainBtn.style.display = winner !== null ? 'block' : 'none';
             }
 
@@ -199,9 +179,7 @@
                 const card = document.createElement('div'); card.classList.add('card'); card.dataset.id = cardData.id;
                 card.classList.toggle('flipped', cardData.isFlipped); card.classList.toggle('matched', cardData.isMatched);
                 card.innerHTML = `<div class="card-face card-front">${cardData.emoji}</div><div class="card-face card-back"></div>`;
-                // Só adiciona listener se não for par E não for placeholder
-                if (!cardData.isMatched && cardData.emoji !== '?') { card.addEventListener('click', () => onCardClick(cardData)); }
-                else { card.style.cursor = 'default'; }
+                if (!cardData.isMatched && cardData.emoji !== '?') { card.addEventListener('click', () => onCardClick(cardData)); } else { card.style.cursor = 'default'; }
                 return card;
              }
 
@@ -210,7 +188,7 @@
                 if (lockBoard) return;
                 gameStateRef.transaction(currentState => {
                      if (!currentState || !currentState.board) return; const currentFlippedCards = currentState.flippedCards || [];
-                     if (currentState.currentPlayer !== playerId || currentState.player2 === null || currentFlippedCards.length >= 2 || !currentState.board[cardData.id] || currentState.board[cardData.id].isFlipped || currentState.board[cardData.id].isMatched) { return; } // Verifica se a carta existe no estado
+                     if (currentState.currentPlayer !== playerId || currentState.player2 === null || currentFlippedCards.length >= 2 || !currentState.board[cardData.id] || currentState.board[cardData.id].isFlipped || currentState.board[cardData.id].isMatched) { return; }
                      currentState.board[cardData.id].isFlipped = true; if (!currentFlippedCards.includes(cardData.id)) { currentState.flippedCards = [...currentFlippedCards, cardData.id]; }
                      return currentState;
                  });
@@ -232,8 +210,8 @@
 
             // --- Função: Atualizar Placar ---
             function updateScoreboard(scores, victories, currentPlayer) {
-                player1InfoEl.innerHTML = `${playerNames[1]} <span class="victories">(V:${victories?.[1] ?? 0})</span> ${scores?.[1] ?? 0} pts`; // Usa optional chaining
-                player2InfoEl.innerHTML = `${playerNames[2]} <span class="victories">(V:${victories?.[2] ?? 0})</span> ${scores?.[2] ?? 0} pts`; // Usa optional chaining
+                player1InfoEl.innerHTML = `${playerNames[1]} <span class="victories">(V:${victories?.[1] ?? 0})</span> ${scores?.[1] ?? 0} pts`;
+                player2InfoEl.innerHTML = `${playerNames[2]} <span class="victories">(V:${victories?.[2] ?? 0})</span> ${scores?.[2] ?? 0} pts`;
                 player1InfoEl.classList.toggle('active', currentPlayer === 1); player2InfoEl.classList.toggle('active', currentPlayer === 2);
             }
 
@@ -251,7 +229,7 @@
                       const cardPairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random()); currentState.board = {}; cardPairs.forEach((e, i) => { currentState.board[i] = { id: i, emoji: e, isFlipped: false, isMatched: false }; });
                       currentState.scores = { 1: 0, 2: 0 }; currentState.flippedCards = []; currentState.matchedPairs = 0;
                       const lastWinner = currentState.winner; currentState.winner = null; currentState.winnerInfo = null;
-                      currentState.currentPlayer = (lastWinner === 1 || lastWinner === 0) ? 2 : 1; // Alterna quem começa
+                      currentState.currentPlayer = (lastWinner === 1 || lastWinner === 0) ? 2 : 1;
                       return currentState;
                  });
             }
@@ -270,4 +248,3 @@
     </script>
 </body>
 </html>
-
