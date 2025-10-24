@@ -1,6 +1,5 @@
 const CACHE_NAME = 'jogos-online-cache-v1'; 
-const URLS_TO_CACHE = [
-  '/',                
+const URLS_TO_CACHE = [       
   'index.html',       
   'game.html',           
   'manifest.json',
@@ -77,4 +76,5 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
 
