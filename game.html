@@ -112,20 +112,21 @@
             let playerNames = { 1: "P1", 2: "P2" };
             let currentBoardState = {};
 
-            // --- FUNÇÃO DE INICIALIZAÇÃO (Lendo chaves genéricas sessionStorage) ---
+            // --- FUNÇÃO DE INICIALIZAÇÃO (Lendo chaves genéricas sessionStorage CORRIGIDO) ---
             function initGame() {
                  console.log("Iniciando initGame (Memória)...");
                  const urlParams = new URLSearchParams(window.location.search);
                  gameId = urlParams.get('game');
-                 // *** Lê as chaves genéricas salvas pelo Lobby ***
+                 // *** CORREÇÃO: Usa as chaves GENÉRICAS do Lobby ***
                  myPlayerUUID = sessionStorage.getItem('jogoUUID');
                  const myPlayerName = sessionStorage.getItem('jogoPlayerName') || `Jogador?`;
-                 // *** Fim da Leitura ***
+                 // *** FIM DA CORREÇÃO ***
 
                  if (!gameId) {
                      console.error("initGame ERRO: ID da sala (gameId) não encontrado.");
                      alert("ID da sala não encontrado. Voltando ao Lobby."); window.location.href = 'index.html'; return;
                  }
+                 // Esta verificação agora deve passar
                  if (!myPlayerUUID) {
                      console.error("initGame ERRO: ID do jogador (myPlayerUUID) não encontrado.");
                      alert("ID do jogador não encontrado. Voltando ao Lobby."); window.location.href = 'index.html'; return;
@@ -135,7 +136,8 @@
                  gameStateRef = database.ref('games/' + gameId); // <<<< CAMINHO CORRETO PARA JOGO DA MEMÓRIA
                  gameStateRef.transaction(currentState => {
                     if (currentState === null) return null;
-                    if (currentState.gameType !== 'memory') { console.error("initGame TX abort: Tipo incorreto!"); return; } // Verifica tipo
+                    // Verifica o tipo de jogo para evitar conflitos
+                    if (currentState.gameType !== 'memory') { console.error("initGame TX abort: Tipo incorreto!"); return; }
                     if (currentState.player1_uuid === myPlayerUUID) playerId = 1;
                     else if (currentState.player2_uuid === myPlayerUUID) playerId = 2;
                     else if (!currentState.player2_uuid) { playerId = 2; currentState.player2 = true; currentState.player2_uuid = myPlayerUUID; currentState.player2_name = myPlayerName;}
