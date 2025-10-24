@@ -1,310 +1,338 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo da Memória (Online)</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icons/icon-192.png" type="image/png">
-    <meta name="theme-color" content="#16213e">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo da Memória (Online)</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <meta name="theme-color" content="#16213e">
 
-    <style>
-        :root {
-            --bg-color: #1a1a2e; --card-color: #16213e; --card-flipped-color: #0f3460;
-            --text-color: #e94560; --accent-color: #ffffff; --player1-color: #53a8b6; --player2-color: #e94560;
-            --card-size: 60px;
-            --board-gap: 8px;
-        }
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--accent-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-        h1 { color: var(--text-color); margin-bottom: 10px; font-size: 1.8em; }
-        .game-info {
-            display: flex; justify-content: space-between;
-            width: calc(6 * var(--card-size) + 5 * var(--board-gap));
-            max-width: 95%;
-            margin-bottom: 15px; font-size: 1.0em;
-        }
-        .player-score {
-            padding: 8px 15px; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48%;
-            text-align: center;
-        }
-        .victories { font-size: 0.8em; opacity: 0.8; display: block; margin-top: 2px;}
+  <style>
+    :root {
+      --bg-color: #1a1a2e;
+      --card-color: #16213e;
+      --card-flipped-color: #0f3460;
+      --text-color: #e94560;
+      --accent-color: #ffffff;
+      --player1-color: #53a8b6;
+      --player2-color: #e94560;
+      --card-size: 60px;
+      --board-gap: 8px;
+    }
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--accent-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    h1 { color: var(--text-color); margin-bottom: 10px; font-size: 1.8em; }
+    .game-info {
+      display: flex; justify-content: space-between;
+      width: calc(6 * var(--card-size) + 5 * var(--board-gap));
+      max-width: 95%;
+      margin-bottom: 15px; font-size: 1.0em;
+    }
+    .player-score {
+      padding: 8px 15px; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48%;
+      text-align: center;
+    }
+    .victories { font-size: 0.8em; opacity: 0.8; display: block; margin-top: 2px;}
+    #player1-info { background-color: var(--player1-color); }
+    #player2-info { background-color: var(--player2-color); }
+    .player-score.active { box-shadow: 0 0 10px var(--accent-color); transform: scale(1.05); }
+    #turn-info { width: 100%; text-align: center; font-size: 1.3em; margin-bottom: 15px; font-weight: bold; min-height: 1.5em; }
 
-        #player1-info { background-color: var(--player1-color); }
-        #player2-info { background-color: var(--player2-color); }
-        .player-score.active { box-shadow: 0 0 10px var(--accent-color); transform: scale(1.05); }
-        #turn-info { width: 100%; text-align: center; font-size: 1.3em; margin-bottom: 15px; font-weight: bold; min-height: 1.5em; }
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(6, var(--card-size));
+      grid-template-rows: repeat(6, var(--card-size));
+      gap: var(--board-gap);
+      perspective: 1000px;
+    }
+    .card {
+      width: var(--card-size); height: var(--card-size);
+      position: relative; transform-style: preserve-3d;
+      transition: transform 0.6s; cursor: pointer;
+      user-select: none;
+      -webkit-user-drag: none;
+      touch-action: none;
+    }
+    .card.flipped, .card.matched { transform: rotateY(180deg); cursor: default; }
+    .card-face {
+      position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+      border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      font-size: calc(var(--card-size) * 0.6);
+      user-select: none;
+      -webkit-user-drag: none;
+      touch-action: none;
+    }
+    .card-front { background-color: var(--card-flipped-color); transform: rotateY(180deg); }
+    .card-back { background-color: var(--card-color); border: 2px solid var(--text-color); }
 
-        .game-board {
-            display: grid;
-            grid-template-columns: repeat(6, var(--card-size));
-            grid-template-rows: repeat(6, var(--card-size));
-            gap: var(--board-gap);
-            perspective: 1000px;
-        }
-        .card {
-            width: var(--card-size); height: var(--card-size);
-            position: relative; transform-style: preserve-3d;
-            transition: transform 0.6s; cursor: pointer;
-            user-select: none;
-            -webkit-user-drag: none;
-            touch-action: none;
-        }
-        .card.flipped, .card.matched { transform: rotateY(180deg); cursor: default; }
-        .card-face {
-            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
-            border-radius: 6px; display: flex; align-items: center; justify-content: center;
-            font-size: calc(var(--card-size) * 0.6);
-            user-select: none;
-            -webkit-user-drag: none;
-            touch-action: none;
-        }
-        .card-front { background-color: var(--card-flipped-color); transform: rotateY(180deg); }
-        .card-back { background-color: var(--card-color); border: 2px solid var(--text-color); }
+    @keyframes matchAnimation {
+      0%, 100% { transform: scale(1) rotateY(180deg); box-shadow: none; }
+      50% { transform: scale(1.15) rotateY(180deg); box-shadow: 0 0 15px yellow; }
+    }
+    .card.play-match-animation { animation: matchAnimation 0.7s ease-in-out; }
 
-        @keyframes matchAnimation {
-            0%, 100% { transform: scale(1) rotateY(180deg); box-shadow: none; }
-            50% { transform: scale(1.15) rotateY(180deg); box-shadow: 0 0 15px yellow; }
-        }
-        .card.play-match-animation {
-            animation: matchAnimation 0.7s ease-in-out;
-        }
+    #play-again-btn {
+      margin-top: 15px; padding: 10px 20px; font-size: 1em; font-weight: bold;
+      color: var(--accent-color); background-color: var(--player1-color);
+      border: none; border-radius: 8px; cursor: pointer; display: none;
+    }
+    #play-again-btn:hover { background-color: #438a9a; }
 
-        #play-again-btn {
-             margin-top: 15px; padding: 10px 20px; font-size: 1em; font-weight: bold;
-             color: var(--accent-color); background-color: var(--player1-color);
-             border: none; border-radius: 8px; cursor: pointer; display: none;
-        }
-        #play-again-btn:hover { background-color: #438a9a; }
-
-        #reset-button {
-            margin-top: 10px; padding: 10px 20px; font-size: 1em; font-weight: bold;
-            color: var(--accent-color); background-color: var(--text-color); border: none; border-radius: 8px; cursor: pointer;
-        }
-         #reset-button:hover { background-color: #c93048; }
-
-        #game-id-display { font-size: 0.8em; color: var(--accent-color); margin-top: 10px; opacity: 0.7; }
-    </style>
+    #reset-button {
+      margin-top: 10px; padding: 10px 20px; font-size: 1em; font-weight: bold;
+      color: var(--accent-color); background-color: var(--text-color); border: none; border-radius: 8px; cursor: pointer;
+    }
+    #reset-button:hover { background-color: #c93048; }
+    #game-id-display { font-size: 0.8em; color: var(--accent-color); margin-top: 10px; opacity: 0.7; }
+  </style>
 </head>
 <body>
+  <h1>Jogo da Memória Online</h1>
 
-    <h1>Jogo da Memória Online</h1>
+  <div class="game-info">
+    <div id="player1-info" class="player-score">Jogador 1: 0</div>
+    <div id="player2-info" class="player-score">Jogador 2: 0</div>
+  </div>
 
-    <div class="game-info">
-        <div id="player1-info" class="player-score">Jogador 1: 0</div>
-        <div id="player2-info" class="player-score">Jogador 2: 0</div>
-    </div>
+  <div id="turn-info">Conectando...</div>
+  <div class="game-board" id="game-board"></div>
 
-    <div id="turn-info">Conectando...</div>
+  <button id="play-again-btn">Jogar Novamente</button>
+  <button id="reset-button">Voltar ao Lobby</button>
+  <div id="game-id-display"></div>
 
-    <div class="game-board" id="game-board"></div>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
-    <button id="play-again-btn">Jogar Novamente</button>
-    <button id="reset-button">Voltar ao Lobby</button>
-    <div id="game-id-display"></div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
+      authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
+      databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com",
+      projectId: "jogo-da-memoria-lilica",
+      storageBucket: "jogo-da-memoria-lilica.firebasestorage.app",
+      messagingSenderId: "683788488529",
+      appId: "1:683788488529:web:727316a3e182257a2d8d70"
+    };
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    let database;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      database = firebase.database();
+      console.log("✅ Firebase inicializado.");
+    } catch (e) {
+      console.error("ERRO FIREBASE:", e);
+      alert("Erro ao conectar Firebase.");
+      throw e;
+    }
 
-    <script>
-        const firebaseConfig = {
-          apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
-          authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
-          databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com",
-          projectId: "jogo-da-memoria-lilica",
-          storageBucket: "jogo-da-memoria-lilica.firebasestorage.app",
-          messagingSenderId: "683788488529",
-          appId: "1:683788488529:web:727316a3e182257a2d8d70"
-        };
+    document.addEventListener('DOMContentLoaded', () => {
+      const emojis = [ '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦' ];
+      const gameBoard = document.getElementById('game-board');
+      const player1InfoEl = document.getElementById('player1-info');
+      const player2InfoEl = document.getElementById('player2-info');
+      const turnInfoEl = document.getElementById('turn-info');
+      const resetButton = document.getElementById('reset-button');
+      const playAgainBtn = document.getElementById('play-again-btn');
+      const gameIdDisplay = document.getElementById('game-id-display');
 
-        let database;
-        try { firebase.initializeApp(firebaseConfig); database = firebase.database(); }
-        catch (e) { alert("Erro ao conectar Firebase."); throw e; }
+      let gameStateRef, gameId, playerId, lockBoard = false;
+      let myPlayerUUID, playerNames = { 1: "P1", 2: "P2" };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const emojis = [ '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦' ];
-            const gameBoard = document.getElementById('game-board');
-            const player1InfoEl = document.getElementById('player1-info');
-            const player2InfoEl = document.getElementById('player2-info');
-            const turnInfoEl = document.getElementById('turn-info');
-            const resetButton = document.getElementById('reset-button');
-            const playAgainBtn = document.getElementById('play-again-btn');
-            const gameIdDisplay = document.getElementById('game-id-display');
+      async function initGame() {
+        const urlParams = new URLSearchParams(window.location.search);
+        gameId = urlParams.get('game');
+        myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
 
-            let gameStateRef, gameId, playerId, lockBoard = false;
-            let myPlayerUUID, playerNames = { 1: "P1", 2: "P2" };
-            let currentBoardState = {};
+        if (!myPlayerUUID) { alert("Erro de sessão."); window.location.href = 'index.html'; return; }
+        if (!gameId) { alert("Nenhum ID de sala."); window.location.href = 'index.html'; return; }
 
-            function initGame() {
-                const urlParams = new URLSearchParams(window.location.search);
-                gameId = urlParams.get('game');
-                myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
-                if (!myPlayerUUID || !gameId) { window.location.href = 'index.html'; return; }
+        gameStateRef = database.ref('games/' + gameId);
+        console.log("🔍 Verificando sala:", gameId);
 
-                gameStateRef = database.ref('games/' + gameId);
-                gameStateRef.transaction(state => {
-                    if (!state || state.gameType !== 'memory') return;
-                    if (state.player1_uuid === myPlayerUUID) playerId = 1;
-                    else if (state.player2_uuid === myPlayerUUID) playerId = 2;
-                    else if (!state.player2_uuid) {
-                        playerId = 2;
-                        state.player2_uuid = myPlayerUUID;
-                        state.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || 'Jogador 2';
-                    } else return;
-                    return state;
-                }, (err, committed, snap) => {
-                    if (err || !committed) window.location.href = 'index.html';
-                    else setupGameListeners();
-                });
-            }
+        const snapshot = await gameStateRef.once('value');
+        const state = snapshot.val();
 
-            function setupGameListeners() {
-                gameIdDisplay.textContent = `ID da Sala: ${gameId}`;
-                if (gameStateRef) gameStateRef.off();
+        if (!state) {
+          alert("Sala não encontrada ou já encerrada.");
+          window.location.href = 'index.html';
+          return;
+        }
 
-                gameStateRef.on('value', snap => {
-                    const state = snap.val(); if (!state) return;
-                    playerNames[1] = state.player1_name || "P1";
-                    playerNames[2] = state.player2_name || "P2";
-                    state.scores = state.scores || { 1: 0, 2: 0 };
-                    state.victories = state.victories || { 1: 0, 2: 0 };
-                    currentBoardState = state.board || {};
+        if (state.gameType !== 'memory') {
+          alert("Tipo incorreto de jogo!");
+          window.location.href = 'index.html';
+          return;
+        }
 
-                    updateScoreboard(state.scores, state.victories, state.currentPlayer);
-                    updateTurnInfo(state.currentPlayer, state.winner, state.player2_uuid);
-                    renderBoard(currentBoardState, state.winner);
+        gameStateRef.transaction(currentState => {
+          if (!currentState) return currentState;
 
-                    if (state.flippedCards?.length === 2 && playerId === state.currentPlayer && !lockBoard) {
-                        lockBoard = true;
-                        setTimeout(() => checkForMatch(state), 900);
-                    } else if (state.flippedCards?.length < 2) lockBoard = false;
-                });
-            }
-
-            function renderBoard(boardState, winner) {
-                gameBoard.innerHTML = '';
-                const sortedKeys = Object.keys(boardState).sort((a,b)=>a-b);
-                sortedKeys.forEach(key => {
-                    const card = createCardElement(boardState[key]);
-                    gameBoard.appendChild(card);
-                });
-                playAgainBtn.style.display = winner !== null ? 'block' : 'none';
-            }
-
-            function createCardElement(cardData) {
-                const card = document.createElement('div');
-                card.classList.add('card');
-                card.dataset.id = cardData.id;
-                card.classList.toggle('flipped', cardData.isFlipped);
-                card.classList.toggle('matched', cardData.isMatched);
-
-                card.setAttribute('draggable', 'false');
-                card.addEventListener('mousedown', e => e.preventDefault());
-                card.addEventListener('touchstart', e => e.preventDefault());
-
-                card.innerHTML = `
-                    <div class="card-face card-front" draggable="false">${cardData.emoji}</div>
-                    <div class="card-face card-back" draggable="false"></div>
-                `;
-
-                if (!cardData.isMatched) card.addEventListener('click', () => onCardClick(cardData));
-                else card.style.cursor = 'default';
-                return card;
-            }
-
-            function onCardClick(cardData) {
-                if (lockBoard) return;
-                gameStateRef.transaction(state => {
-                    if (!state) return state;
-                    const flipped = state.flippedCards || [];
-                    if (state.currentPlayer !== playerId || flipped.length >= 2 || state.board[cardData.id].isMatched) return;
-                    state.board[cardData.id].isFlipped = true;
-                    if (!flipped.includes(cardData.id)) state.flippedCards = [...flipped, cardData.id];
-                    return state;
-                });
-            }
-
-            function checkForMatch(state) {
-                gameStateRef.transaction(s => {
-                    if (!s || !s.flippedCards || s.flippedCards.length !== 2) return s;
-                    const [a, b] = s.flippedCards;
-                    const c1 = s.board[a], c2 = s.board[b];
-                    const match = c1.emoji === c2.emoji;
-                    if (match) {
-                        s.scores[s.currentPlayer]++;
-                        s.board[a].isMatched = s.board[b].isMatched = true;
-                        s.matchedPairs++;
-                    } else {
-                        s.board[a].isFlipped = s.board[b].isFlipped = false;
-                        s.currentPlayer = s.currentPlayer === 1 ? 2 : 1;
-                    }
-                    s.flippedCards = [];
-                    if (s.matchedPairs === emojis.length) {
-                        const [p1, p2] = [s.scores[1], s.scores[2]];
-                        s.winner = p1 > p2 ? 1 : (p2 > p1 ? 2 : 0);
-                        if (s.winner) s.victories[s.winner]++;
-                    }
-                    return s;
-                });
-            }
-
-            function updateScoreboard(scores, victories, currentPlayer) {
-                player1InfoEl.innerHTML = `${playerNames[1]} <span class="victories">(V:${victories[1]})</span> ${scores[1]} pts`;
-                player2InfoEl.innerHTML = `${playerNames[2]} <span class="victories">(V:${victories[2]})</span> ${scores[2]} pts`;
-                player1InfoEl.classList.toggle('active', currentPlayer === 1);
-                player2InfoEl.classList.toggle('active', currentPlayer === 2);
-            }
-
-            function updateTurnInfo(currentPlayer, winner, player2_connected) {
-                if (winner !== null) {
-                    const wn = winner === 1 ? playerNames[1] : (winner === 2 ? playerNames[2] : 'Empate');
-                    turnInfoEl.textContent = `Fim da Rodada! ${wn === 'Empate' ? wn : wn + ' venceu!'}`;
-                } else {
-                    if (!player2_connected) { turnInfoEl.textContent = "Aguardando Jogador 2..."; return; }
-                    turnInfoEl.textContent = playerId === currentPlayer
-                        ? `É a sua vez, ${playerNames[currentPlayer]}!`
-                        : `Vez de ${playerNames[currentPlayer]}`;
-                }
-            }
-
-            function resetBoardForNewRound() {
-                gameStateRef.transaction(s => {
-                    if (!s) return s;
-                    const lastWinner = s.winner;
-                    const cardPairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
-                    s.board = {};
-                    cardPairs.forEach((e,i)=>{ s.board[i] = { id:i, emoji:e, isFlipped:false, isMatched:false }; });
-                    s.scores = { 1:0, 2:0 };
-                    s.flippedCards = [];
-                    s.matchedPairs = 0;
-                    s.winner = null;
-                    s.currentPlayer = lastWinner === 1 ? 2 : 1;
-                    return s;
-                });
-            }
-
-            resetButton.addEventListener('click', () => {
-                if (confirm('Deseja sair? Se você for o Jogador 1, a sala será encerrada.')) {
-                    if (playerId === 1 && gameStateRef) gameStateRef.remove().finally(()=>window.location.href='index.html');
-                    else window.location.href = 'index.html';
-                }
-            });
-
-            playAgainBtn.addEventListener('click', resetBoardForNewRound);
-            initGame();
+          if (currentState.player1_uuid === myPlayerUUID) {
+            playerId = 1;
+          } else if (currentState.player2_uuid === myPlayerUUID) {
+            playerId = 2;
+          } else if (!currentState.player2_uuid) {
+            playerId = 2;
+            currentState.player2_uuid = myPlayerUUID;
+            currentState.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || 'Jogador 2';
+          } else {
+            alert("Sala cheia!");
+            window.location.href = 'index.html';
+            return;
+          }
+          return currentState;
+        }, (error, committed) => {
+          if (error || !committed) {
+            alert("Erro ao conectar à sala!");
+            window.location.href = 'index.html';
+          } else {
+            console.log("✅ Conectado como Jogador", playerId);
+            setupGameListeners();
+          }
         });
-    </script>
+      }
+
+      function setupGameListeners() {
+        gameIdDisplay.textContent = `ID da Sala: ${gameId}`;
+        if (gameStateRef) gameStateRef.off();
+
+        gameStateRef.on('value', snap => {
+          const s = snap.val();
+          if (!s) return;
+
+          playerNames[1] = s.player1_name || "P1";
+          playerNames[2] = s.player2_name || "P2";
+
+          updateScoreboard(s.scores || {1:0,2:0}, s.victories || {1:0,2:0}, s.currentPlayer);
+          updateTurnInfo(s.currentPlayer, s.winner, s.player2_uuid);
+          renderBoard(s.board || {}, s.winner);
+
+          if (s.flippedCards?.length === 2 && playerId === s.currentPlayer && !lockBoard) {
+            lockBoard = true;
+            setTimeout(() => checkForMatch(s), 900);
+          } else if (s.flippedCards?.length < 2) lockBoard = false;
+        });
+      }
+
+      function renderBoard(boardState, winner) {
+        gameBoard.innerHTML = '';
+        Object.values(boardState).forEach(card => gameBoard.appendChild(createCardElement(card)));
+        playAgainBtn.style.display = winner !== null ? 'block' : 'none';
+      }
+
+      function createCardElement(cardData) {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.id = cardData.id;
+        card.classList.toggle('flipped', cardData.isFlipped);
+        card.classList.toggle('matched', cardData.isMatched);
+        card.setAttribute('draggable', 'false');
+        card.addEventListener('mousedown', e => e.preventDefault());
+        card.addEventListener('touchstart', e => e.preventDefault());
+        card.innerHTML = `
+          <div class="card-face card-front" draggable="false">${cardData.emoji}</div>
+          <div class="card-face card-back" draggable="false"></div>
+        `;
+        if (!cardData.isMatched) card.addEventListener('click', () => onCardClick(cardData));
+        else card.style.cursor = 'default';
+        return card;
+      }
+
+      function onCardClick(cardData) {
+        if (lockBoard) return;
+        gameStateRef.transaction(s => {
+          if (!s) return s;
+          const flipped = s.flippedCards || [];
+          if (s.currentPlayer !== playerId || flipped.length >= 2 || s.board[cardData.id].isMatched) return;
+          s.board[cardData.id].isFlipped = true;
+          if (!flipped.includes(cardData.id)) s.flippedCards = [...flipped, cardData.id];
+          return s;
+        });
+      }
+
+      function checkForMatch(state) {
+        gameStateRef.transaction(s => {
+          if (!s || !s.flippedCards || s.flippedCards.length !== 2) return s;
+          const [a, b] = s.flippedCards;
+          const c1 = s.board[a], c2 = s.board[b];
+          const match = c1.emoji === c2.emoji;
+          if (match) {
+            s.scores[s.currentPlayer]++;
+            s.board[a].isMatched = s.board[b].isMatched = true;
+            s.matchedPairs++;
+          } else {
+            s.board[a].isFlipped = s.board[b].isFlipped = false;
+            s.currentPlayer = s.currentPlayer === 1 ? 2 : 1;
+          }
+          s.flippedCards = [];
+          if (s.matchedPairs === emojis.length) {
+            const [p1, p2] = [s.scores[1], s.scores[2]];
+            s.winner = p1 > p2 ? 1 : (p2 > p1 ? 2 : 0);
+            if (s.winner) s.victories[s.winner]++;
+          }
+          return s;
+        });
+      }
+
+      function updateScoreboard(scores, victories, currentPlayer) {
+        player1InfoEl.innerHTML = `${playerNames[1]} <span class="victories">(V:${victories[1]})</span> ${scores[1]} pts`;
+        player2InfoEl.innerHTML = `${playerNames[2]} <span class="victories">(V:${victories[2]})</span> ${scores[2]} pts`;
+        player1InfoEl.classList.toggle('active', currentPlayer === 1);
+        player2InfoEl.classList.toggle('active', currentPlayer === 2);
+      }
+
+      function updateTurnInfo(currentPlayer, winner, player2_connected) {
+        if (winner !== null) {
+          const wn = winner === 1 ? playerNames[1] : (winner === 2 ? playerNames[2] : 'Empate');
+          turnInfoEl.textContent = `Fim da Rodada! ${wn === 'Empate' ? wn : wn + ' venceu!'}`;
+        } else {
+          if (!player2_connected) { turnInfoEl.textContent = "Aguardando Jogador 2..."; return; }
+          turnInfoEl.textContent = playerId === currentPlayer
+            ? `É a sua vez, ${playerNames[currentPlayer]}!`
+            : `Vez de ${playerNames[currentPlayer]}`;
+        }
+      }
+
+      function resetBoardForNewRound() {
+        gameStateRef.transaction(s => {
+          if (!s) return s;
+          const lastWinner = s.winner;
+          const pairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
+          s.board = {};
+          pairs.forEach((e, i) => s.board[i] = { id: i, emoji: e, isFlipped: false, isMatched: false });
+          s.scores = {1:0,2:0};
+          s.flippedCards = [];
+          s.matchedPairs = 0;
+          s.winner = null;
+          s.currentPlayer = lastWinner === 1 ? 2 : 1;
+          return s;
+        });
+      }
+
+      resetButton.addEventListener('click', () => {
+        if (confirm('Deseja sair?')) {
+          if (playerId === 1 && gameStateRef) gameStateRef.remove().finally(() => window.location.href='index.html');
+          else window.location.href='index.html';
+        }
+      });
+      playAgainBtn.addEventListener('click', resetBoardForNewRound);
+
+      initGame();
+    });
+  </script>
 </body>
 </html>
