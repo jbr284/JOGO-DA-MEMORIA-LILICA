@@ -175,13 +175,13 @@
       const playAgainBtn = document.getElementById('play-again-btn');
       const gameIdDisplay = document.getElementById('game-id-display');
 
-      let gameStateRef, gameId, playerId, lockBoard = false;
-      let myPlayerUUID, playerNames = {1: "P1", 2: "P2"};
-
       // ================== INÍCIO DA CORREÇÃO 1 ==================
-      // Variável para "debouncing" (evitar múltiplos timeouts)
-      let checkMatchTimeout = null;
+      // REMOVEMOS 'lockBoard'. O 'checkMatchTimeout' será nossa trava.
+      let gameStateRef, gameId, playerId;
+      let checkMatchTimeout = null; // Se for null, está destravado. Se tiver um ID, está travado.
       // =================== FIM DA CORREÇÃO 1 ====================
+      
+      let myPlayerUUID, playerNames = {1: "P1", 2: "P2"};
 
       async function initGame() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -229,28 +229,31 @@
           renderBoard(s.board || {}, s.winner);
 
           // ================== INÍCIO DA CORREÇÃO 2 ==================
-          // Limpa qualquer timeout pendente. Isso é crucial
-          // para evitar que 'on('value')' disparando rápido
-          // agende múltiplas checagens de 'match'.
-          if (checkMatchTimeout) {
-            clearTimeout(checkMatchTimeout);
-            checkMatchTimeout = null;
-          }
+          // Esta é a nova máquina de estados da trava.
 
-          // Se 2 cartas estão viradas E é meu turno
+          // Se 2 cartas estão viradas (estado de "checar") E é meu turno
           if (s.flippedCards?.length === 2 && playerId === s.currentPlayer) {
-            // Trava o tabuleiro localmente (para o 'onCardClick')
-            lockBoard = true;
             
-            // Agenda UMA ÚNICA checagem de 'match'
-            checkMatchTimeout = setTimeout(() => {
-              checkForMatch(); // Executa a transação
+            // Se já não houver uma checagem pendente (evita stale events)
+            if (checkMatchTimeout === null) {
+              // Trava o tabuleiro agendando a checagem
+              checkMatchTimeout = setTimeout(() => {
+                checkForMatch();
+                // Importante: limpa o 'handle' SÓ DEPOIS que a função
+                // foi chamada, para evitar race conditions.
+                checkMatchTimeout = null; 
+              }, 900);
+            }
+          } 
+          
+          // Se 0 ou 1 carta está virada (estado de "destravado")
+          if (s.flippedCards?.length < 2) {
+            // Limpa qualquer checagem pendente que possa existir
+            // (ex: outro jogador fez algo, ou um evento stale)
+            if (checkMatchTimeout) {
+              clearTimeout(checkMatchTimeout);
               checkMatchTimeout = null;
-            }, 900);
-
-          } else if (s.flippedCards?.length < 2) {
-            // Se 0 ou 1 carta está virada, o tabuleiro DEVE estar destravado
-            lockBoard = false;
+            }
           }
           // =================== FIM DA CORREÇÃO 2 ====================
         });
@@ -278,16 +281,16 @@
       }
 
       function onCardClick(cd) {
-        // Trava local: previne cliques durante os 900ms de animação/delay
-        if (lockBoard) return; 
+        // ================== INÍCIO DA CORREÇÃO 3 ==================
+        // Trava local: previne cliques se uma checagem estiver pendente
+        if (checkMatchTimeout !== null) return; 
+        // =================== FIM DA CORREÇÃO 3 ====================
 
         gameStateRef.transaction(s => {
           if (!s) return s;
           const flipped = s.flippedCards || [];
 
-          // Trava da transação (servidor): previne cliques
-          // se não for minha vez, ou se 2 cartas já estiverem viradas,
-          // ou se a carta já for um 'match'.
+          // Trava da transação (servidor)
           if (s.currentPlayer !== playerId || 
               flipped.length >= 2 || 
               s.board[cd.id].isMatched ||
@@ -297,91 +300,8 @@
 
           s.board[cd.id].isFlipped = true;
           s.flippedCards = [...flipped, cd.id];
-          return s; // Commita
-        });
-      }
-
-      function checkForMatch() {
-        // Esta função agora é chamada de forma "debounced" (apenas 1 vez)
-        gameStateRef.transaction(s => {
-          // A guarda de '2 cartas' ainda é essencial.
-          // Se algo der errado, ela previne corromper o estado.
-          if (!s || !s.flippedCards || s.flippedCards.length !== 2) {
-             return; // Aborta
-          }
-          
-          const [a,b] = s.flippedCards;
-          const c1 = s.board[a], c2 = s.board[b];
-
-          if (!c1 || !c2) {
-            s.flippedCards = []; 
-            return s; 
-          }
-
-          const match = c1.emoji === c2.emoji;
-          if (match) {
-            s.scores[s.currentPlayer]++;
-            s.board[a].isMatched = s.board[b].isMatched = true;
-            s.matchedPairs++;
-          } else {
-            s.board[a].isFlipped = s.board[b].isFlipped = false;
-            s.currentPlayer = s.currentPlayer === 1 ? 2 : 1;
-          }
-          s.flippedCards = [];
-          
-          if (s.matchedPairs === emojis.length) {
-            const [p1,p2] = [s.scores[1],s.scores[2]];
-            s.winner = p1>p2?1:(p2>p1?2:0);
-            if (s.winner) s.victories[s.winner]++;
-          }
-          return s; 
-        });
-      }
-
-      function updateScoreboard(scores,victories,currentPlayer){
-        player1InfoEl.innerHTML = `${playerNames[1]} <span class="victories">(V:${victories[1]})</span> ${scores[1]} pts`;
-        player2InfoEl.innerHTML = `${playerNames[2]} <span class="victories">(V:${victories[2]})</span> ${scores[2]} pts`;
-        player1InfoEl.classList.toggle('active',currentPlayer===1);
-        player2InfoEl.classList.toggle('active',currentPlayer===2);
-      }
-
-      function updateTurnInfo(currentPlayer,winner,player2_connected){
-        if (winner!==null){
-          const wn = winner===1?playerNames[1]:(winner===2?playerNames[2]:'Empate');
-          turnInfoEl.textContent = `Fim da Rodada! ${wn==='Empate'?wn:wn+' venceu!'}`;
-        } else {
-          if (!player2_connected){ turnInfoEl.textContent="Aguardando Jogador 2..."; return; }
-          turnInfoEl.textContent = playerId===currentPlayer?`É a sua vez, ${playerNames[currentPlayer]}!`:`Vez de ${playerNames[currentPlayer]}`;
-        }
-      }
-
-      function resetBoardForNewRound(){
-        gameStateRef.transaction(s=>{
-          if (!s) return s;
-          const lastWinner = s.winner;
-          const pairs = [...emojis,...emojis].sort(()=>0.5-Math.random());
-          s.board = {};
-          pairs.forEach((e,i)=>s.board[i]={id:i,emoji:e,isFlipped:false,isMatched:false});
-          s.scores={1:0,2:0};
-          s.flippedCards=[];
-          s.matchedPairs=0;
-          s.winner=null;
-          s.currentPlayer = lastWinner===1?2:1;
           return s;
         });
       }
 
-      resetButton.addEventListener('click',()=>{
-        if (confirm('Deseja sair?')){
-          if (playerId===1 && gameStateRef) gameStateRef.remove().finally(()=>window.location.href='index.html');
-          else window.location.href='index.html';
-        }
-      });
-
-      playAgainBtn.addEventListener('click', resetBoardForNewRound);
-
-      initGame();
-    });
-  </script>
-</body>
-</html>
+      function
