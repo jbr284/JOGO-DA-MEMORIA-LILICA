@@ -175,12 +175,8 @@
       const playAgainBtn = document.getElementById('play-again-btn');
       const gameIdDisplay = document.getElementById('game-id-display');
 
-      // ================== INÍCIO DA CORREÇÃO 1 ==================
-      // REMOVEMOS 'lockBoard'. O 'checkMatchTimeout' será nossa trava.
       let gameStateRef, gameId, playerId;
-      let checkMatchTimeout = null; // Se for null, está destravado. Se tiver um ID, está travado.
-      // =================== FIM DA CORREÇÃO 1 ====================
-      
+      let checkMatchTimeout = null; 
       let myPlayerUUID, playerNames = {1: "P1", 2: "P2"};
 
       async function initGame() {
@@ -221,45 +217,52 @@
         if (gameStateRef) gameStateRef.off();
 
         gameStateRef.on('value', snap => {
-          const s = snap.val(); if (!s) return;
+          const s = snap.val(); 
+          
+          // ================== INÍCIO DA CORREÇÃO ==================
+          // Se 's' for 'null', significa que a sala foi deletada
+          // (provavelmente o Jogador 1 saiu).
+          if (!s) {
+            // Limpa qualquer timeout pendente para evitar erros
+            if (checkMatchTimeout) {
+                clearTimeout(checkMatchTimeout);
+                checkMatchTimeout = null;
+            }
+            alert("A sala foi fechada pelo anfitrião.");
+            window.location.href = 'index.html';
+            return; // Interrompe a execução
+          }
+          // =================== FIM DA CORREÇÃO ====================
+
           playerNames[1] = s.player1_name || "P1";
           playerNames[2] = s.player2_name || "P2";
           updateScoreboard(s.scores || {1:0,2:0}, s.victories || {1:0,2:0}, s.currentPlayer);
           updateTurnInfo(s.currentPlayer, s.winner, s.player2_uuid);
           renderBoard(s.board || {}, s.winner);
 
-          // ================== INÍCIO DA CORREÇÃO 2 ==================
-          // Esta é a nova máquina de estados da trava.
-
-          // Se 2 cartas estão viradas (estado de "checar") E é meu turno
+          // Lógica de trava (da correção anterior)
           if (s.flippedCards?.length === 2 && playerId === s.currentPlayer) {
-            
-            // Se já não houver uma checagem pendente (evita stale events)
             if (checkMatchTimeout === null) {
-              // Trava o tabuleiro agendando a checagem
               checkMatchTimeout = setTimeout(() => {
                 checkForMatch();
-                // Importante: limpa o 'handle' SÓ DEPOIS que a função
-                // foi chamada, para evitar race conditions.
                 checkMatchTimeout = null; 
               }, 900);
             }
           } 
           
-          // Se 0 ou 1 carta está virada (estado de "destravado")
           if (s.flippedCards?.length < 2) {
-            // Limpa qualquer checagem pendente que possa existir
-            // (ex: outro jogador fez algo, ou um evento stale)
             if (checkMatchTimeout) {
               clearTimeout(checkMatchTimeout);
               checkMatchTimeout = null;
             }
           }
-          // =================== FIM DA CORREÇÃO 2 ====================
         });
       }
 
       function renderBoard(boardState, winner) {
+        // Otimização: se o tabuleiro já foi criado, apenas atualize.
+        // Se `gameBoard.innerHTML` for usado, o evento de 'click' 
+        // é perdido em cada re-render. Vamos recriar tudo.
         gameBoard.innerHTML = '';
         Object.values(boardState).forEach(c => gameBoard.appendChild(createCardElement(c)));
         playAgainBtn.style.display = winner !== null ? 'block' : 'none';
@@ -276,26 +279,25 @@
           <div class="card-face card-front">${cd.emoji}</div>
           <div class="card-face card-back"></div>
         `;
+        // Recria o listener de clique
         if (!cd.isMatched) card.addEventListener('click', () => onCardClick(cd));
         return card;
       }
 
       function onCardClick(cd) {
-        // ================== INÍCIO DA CORREÇÃO 3 ==================
-        // Trava local: previne cliques se uma checagem estiver pendente
+        // Trava local
         if (checkMatchTimeout !== null) return; 
-        // =================== FIM DA CORREÇÃO 3 ====================
 
         gameStateRef.transaction(s => {
           if (!s) return s;
           const flipped = s.flippedCards || [];
 
-          // Trava da transação (servidor)
+          // Trava da transação
           if (s.currentPlayer !== playerId || 
               flipped.length >= 2 || 
               s.board[cd.id].isMatched ||
               s.board[cd.id].isFlipped) {
-            return; // Aborta
+            return; 
           }
 
           s.board[cd.id].isFlipped = true;
@@ -304,4 +306,94 @@
         });
       }
 
-      function
+      function checkForMatch() {
+        gameStateRef.transaction(s => {
+          if (!s || !s.flippedCards || s.flippedCards.length !== 2) {
+             return; 
+          }
+          
+          const [a,b] = s.flippedCards;
+          const c1 = s.board[a], c2 = s.board[b];
+
+          if (!c1 || !c2) {
+            s.flippedCards = []; 
+            return s; 
+          }
+
+          const match = c1.emoji === c2.emoji;
+          if (match) {
+            s.scores[s.currentPlayer]++;
+            s.board[a].isMatched = s.board[b].isMatched = true;
+            s.matchedPairs++;
+          } else {
+            s.board[a].isFlipped = s.board[b].isFlipped = false;
+            s.currentPlayer = s.currentPlayer === 1 ? 2 : 1;
+          }
+          s.flippedCards = []; 
+          
+          if (s.matchedPairs === emojis.length) {
+            const [p1,p2] = [s.scores[1],s.scores[2]];
+            s.winner = p1>p2?1:(p2>p1?2:0);
+            if (s.winner) s.victories[s.winner]++;
+          }
+          return s; 
+        });
+      }
+
+      function updateScoreboard(scores,victories,currentPlayer){
+        player1InfoEl.innerHTML = `${playerNames[1]} <span class="victories">(V:${victories[1]})</span> ${scores[1]} pts`;
+        player2InfoEl.innerHTML = `${playerNames[2]} <span class="victories">(V:${victories[2]})</span> ${scores[2]} pts`;
+        player1InfoEl.classList.toggle('active',currentPlayer===1);
+        player2InfoEl.classList.toggle('active',currentPlayer===2);
+      }
+
+      function updateTurnInfo(currentPlayer,winner,player2_connected){
+        if (winner!==null){
+          const wn = winner===1?playerNames[1]:(winner===2?playerNames[2]:'Empate');
+          turnInfoEl.textContent = `Fim da Rodada! ${wn==='Empate'?wn:wn+' venceu!'}`;
+        } else {
+          if (!player2_connected){ turnInfoEl.textContent="Aguardando Jogador 2..."; return; }
+          turnInfoEl.textContent = playerId===currentPlayer?`É a sua vez, ${playerNames[currentPlayer]}!`:`Vez de ${playerNames[currentPlayer]}`;
+        }
+      }
+
+      function resetBoardForNewRound(){
+        if (checkMatchTimeout) {
+            clearTimeout(checkMatchTimeout);
+            checkMatchTimeout = null;
+        }
+
+        gameStateRef.transaction(s=>{
+          if (!s) return s;
+          const lastWinner = s.winner;
+          const pairs = [...emojis,...emojis].sort(()=>0.5-Math.random());
+          s.board = {};
+          pairs.forEach((e,i)=>s.board[i]={id:i,emoji:e,isFlipped:false,isMatched:false});
+          s.scores={1:0,2:0};
+          s.flippedCards=[];
+          s.matchedPairs=0;
+          s.winner=null;
+          s.currentPlayer = lastWinner===1?2:1;
+          return s;
+        });
+      }
+
+      resetButton.addEventListener('click',()=>{
+        if (confirm('Deseja sair?')){
+          // Apenas o P1 deve deletar a sala
+          if (playerId===1 && gameStateRef) {
+            gameStateRef.remove().finally(()=>window.location.href='index.html');
+          } else {
+            // O P2 (ou espectador) apenas sai
+            window.location.href='index.html';
+          }
+        }
+      });
+
+      playAgainBtn.addEventListener('click', resetBoardForNewRound);
+
+      initGame();
+    });
+  </script>
+</body>
+</html>
