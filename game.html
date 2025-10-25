@@ -222,10 +222,31 @@
           updateScoreboard(s.scores || {1:0,2:0}, s.victories || {1:0,2:0}, s.currentPlayer);
           updateTurnInfo(s.currentPlayer, s.winner, s.player2_uuid);
           renderBoard(s.board || {}, s.winner);
-          if (s.flippedCards?.length === 2 && playerId === s.currentPlayer && !lockBoard) {
+
+          // ================== INÍCIO DA CORREÇÃO 1 ==================
+          // A lógica de lock/unlock foi simplificada.
+          // O bug era: a checagem `!lockBoard` prevenia que o `setTimeout`
+          // fosse agendado se o `on('value')` disparasse múltiplas vezes
+          // (numa race condition) antes do lock ser liberado.
+          //
+          // A nova lógica agenda o 'checkForMatch' *toda vez* que 
+          // 2 cartas estão viradas e é a vez do jogador.
+          // A função 'checkForMatch' (na correção 2) vai lidar
+          // com os múltiplos chamados, abortando os desnecessários.
+
+          if (s.flippedCards?.length === 2 && playerId === s.currentPlayer) {
+            // Se as condições do servidor são 'lock', setamos o lock local
+            // e AGENDAMOS uma verificação.
             lockBoard = true;
-            setTimeout(() => checkForMatch(s), 900);
-          } else if (s.flippedCards?.length < 2) lockBoard = false;
+            setTimeout(checkForMatch, 900); // Removemos o 's' (stale state)
+          } else if (s.flippedCards?.length < 2) {
+            // Se as condições do servidor são 'unlock', removemos o lock local
+            lockBoard = false;
+          }
+          // Se `s.flippedCards?.length` for 2, mas *não for* a vez do jogador,
+          // o `lockBoard` local permanece como está (provavelmente 'false'),
+          // mas o clique é prevenido pela transação `onCardClick`
+          // =================== FIM DA CORREÇÃO 1 ====================
         });
       }
 
@@ -251,36 +272,51 @@
       }
 
       function onCardClick(cd) {
-        if (lockBoard) return;
+        // O lock local previne cliques extras durante o timeout de 900ms
+        if (lockBoard) return; 
+        
         gameStateRef.transaction(s => {
           if (!s) return s;
           const flipped = s.flippedCards || [];
-          if (s.currentPlayer !== playerId || flipped.length >= 2 || s.board[cd.id].isMatched) return;
+          
+          // O lock do servidor (transação) previne cliques se:
+          // 1. Não for a vez do jogador
+          // 2. Já houver 2 cartas viradas
+          // 3. A carta já tiver sido combinada
+          // 4. (Extra) O jogador clicar na mesma carta já virada
+          if (s.currentPlayer !== playerId || 
+              flipped.length >= 2 || 
+              s.board[cd.id].isMatched ||
+              s.board[cd.id].isFlipped) {
+            return; // Aborta a transação
+          }
+
           s.board[cd.id].isFlipped = true;
-          if (!flipped.includes(cd.id)) s.flippedCards = [...flipped, cd.id];
+          s.flippedCards = [...flipped, cd.id];
           return s;
         });
       }
 
-      function checkForMatch(state) {
+      // ================== INÍCIO DA CORREÇÃO 2 ==================
+      // Removemos o parâmetro 'state', pois ele estava "stale" (antigo).
+      // A transação SEMPRE pega o estado mais recente (o 's' interno).
+      function checkForMatch() { 
         gameStateRef.transaction(s => {
-          // ================== INÍCIO DA CORREÇÃO ==================
-          // Se o estado no DB não for o que esperamos (ex: os cards já foram limpos
-          // por uma transação anterior), devemos ABORTAR (return;) esta transação.
-          // Se retornássemos 's', ela seria "commitada" com sucesso sem
-          // disparar um novo 'on('value')', e o 'lockBoard' nunca seria liberado.
+          // Esta guarda (que foi minha 1ª correção) é VITAL.
+          // Como agora agendamos múltiplos 'setTimeout', esta guarda
+          // garante que apenas o PRIMEIRO execute a lógica,
+          // e todos os seguintes abortem (return;)
           if (!s || !s.flippedCards || s.flippedCards.length !== 2) {
-             return; // <-- ESTA É A CORREÇÃO
+             return; // Aborta transações desnecessárias
           }
-          // =================== FIM DA CORREÇÃO ====================
+          // =================== FIM DA CORREÇÃO 2 ====================
           
           const [a,b] = s.flippedCards;
           const c1 = s.board[a], c2 = s.board[b];
 
-          // Guarda de segurança adicional: se os cards não existirem, aborte.
           if (!c1 || !c2) {
-            s.flippedCards = []; // Limpa para destravar
-            return s; // Retorna o estado limpo
+            s.flippedCards = []; 
+            return s; 
           }
 
           const match = c1.emoji === c2.emoji;
@@ -292,14 +328,14 @@
             s.board[a].isFlipped = s.board[b].isFlipped = false;
             s.currentPlayer = s.currentPlayer === 1 ? 2 : 1;
           }
-          s.flippedCards = []; // Limpa as cartas viradas
+          s.flippedCards = [];
           
           if (s.matchedPairs === emojis.length) {
             const [p1,p2] = [s.scores[1],s.scores[2]];
             s.winner = p1>p2?1:(p2>p1?2:0);
             if (s.winner) s.victories[s.winner]++;
           }
-          return s; // Retorna o novo estado modificado
+          return s; 
         });
       }
 
