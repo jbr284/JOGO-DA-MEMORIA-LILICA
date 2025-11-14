@@ -413,26 +413,14 @@
             return;
           }
 
-          const matchedPairs = s.matchedPairs || 0;
+          // const matchedPairs = s.matchedPairs || 0; // Não é mais necessário para a UI
 
           playerNames[1] = s.player1_name || "P1";
           playerNames[2] = s.player2_name || "P2";
           updateScoreboard(s.scores || {1:0,2:0}, s.victories || {1:0,2:0}, s.currentPlayer);
           
-          // ===================================================================
-          // <<< INÍCIO DA MELHORIA (renderBoard e updateTurnInfo) >>>
-          //
-          // Não passamos mais 'matchedPairs'. O 'winner' é a única fonte da verdade
-          // para saber se o jogo acabou.
-          //
-          // updateTurnInfo(s.currentPlayer, s.winner, s.player2_uuid, matchedPairs);
-          // renderBoard(s.board || {}, s.winner, matchedPairs);
-          // ===================================================================
           updateTurnInfo(s.currentPlayer, s.winner, s.player2_uuid);
           renderBoard(s.board || {}, s.winner);
-          // ===================================================================
-          // <<< FIM DA MELHORIA >>>
-          // ===================================================================
 
 
           if (s.flippedCards?.length === 2 && playerId === s.currentPlayer) {
@@ -453,24 +441,12 @@
         });
       }
 
-      // ===================================================================
-      // <<< INÍCIO DA MELHORIA (renderBoard) >>>
-      //
-      // Removemos a checagem de `matchedPairs === EMOJI_COUNT`.
-      // Se `winner` não for nulo, o jogo acabou.
-      //
-      // function renderBoard(boardState, winner, matchedPairs) {
-      // ===================================================================
       function renderBoard(boardState, winner) {
         gameBoard.innerHTML = '';
         Object.values(boardState).forEach(c => gameBoard.appendChild(createCardElement(c)));
         
-        // playAgainBtn.style.display = (winner !== null && matchedPairs === EMOJI_COUNT) ? 'block' : 'none';
         playAgainBtn.style.display = (winner !== null) ? 'block' : 'none';
       }
-      // ===================================================================
-      // <<< FIM DA MELHORIA >>>
-      // ===================================================================
 
 
       function createCardElement(cd) {
@@ -495,20 +471,13 @@
           if (!s) return s;
           const flipped = s.flippedCards || [];
 
-          // ===================================================================
-          // <<< INÍCIO DA MELHORIA (onCardClick) >>>
-          // Adicionamos uma checagem para bloquear cliques se o jogo já acabou (winner !== null)
-          // ===================================================================
           if (s.currentPlayer !== playerId || 
-              s.winner !== null || // <-- NOVA CHECAGEM
+              s.winner !== null || // <-- Bloqueia clique se o jogo acabou
               flipped.length >= 2 || 
               s.board[cd.id].isMatched ||
               s.board[cd.id].isFlipped) {
             return; // Aborta a transação
           }
-          // ===================================================================
-          // <<< FIM DA MELHORIA >>>
-          // ===================================================================
 
           s.board[cd.id].isFlipped = true;
           s.flippedCards = [...flipped, cd.id];
@@ -517,15 +486,6 @@
       }
 
 
-      // ===================================================================
-      // <<< INÍCIO DA MELHORIA (checkForMatch) >>>
-      //
-      // Esta função foi completamente reescrita para incluir:
-      // 1. A lógica da "Mercy Rule" (vitória antecipada).
-      // 2. A lógica de "Fim dos Pares".
-      // 3. A lógica unificada de contagem de vitórias (que corrige o bug do empate).
-      //
-      // ===================================================================
       function checkForMatch() {
         gameStateRef.transaction(s => {
           if (!s || !s.flippedCards || s.flippedCards.length !== 2) {
@@ -580,16 +540,23 @@
           s.flippedCards = []; 
           
           // --- LÓGICA DE VITÓRIA (Fim dos Pares) ---
-          // Se o jogo ainda não acabou pela Mercy Rule, checa se os pares acabaram
-          if (s.matchedPairs === EMOJI_COUNT && s.winner === null) {
+          // ===================================================================
+          // <<< INÍCIO DA CORREÇÃO (BUG DO EMPATE) >>>
+          //
+          // Adicionamos s.matchedPairs > 0 para prevenir o bug de Empate 0-0 no início
+          //
+          // if (s.matchedPairs === EMOJI_COUNT && s.winner === null) {
+          // ===================================================================
+          if (s.matchedPairs > 0 && s.matchedPairs === EMOJI_COUNT && s.winner === null) {
             const [p1,p2] = [s.scores[1],s.scores[2]];
             s.winner = p1 > p2 ? 1 : (p2 > p1 ? 2 : 0); // 0 para empate
             jogoAcabouAgora = true;
           }
+          // ===================================================================
+          // <<< FIM DA CORREÇÃO >>>
+          // ===================================================================
           
           // --- LÓGICA DE CONTAGEM DE VITÓRIAS (Unificada) ---
-          // Se o jogo acabou *agora* (Mercy Rule ou Fim dos Pares)
-          // E não foi um empate (0), incrementa o contador de vitórias.
           if (jogoAcabouAgora && s.winner !== 0 && s.winner !== null) {
               s.victories[s.winner]++;
           }
@@ -597,9 +564,6 @@
           return s; // Comita o estado atualizado
         });
       }
-      // ===================================================================
-      // <<< FIM DA MELHORIA >>>
-      // ===================================================================
 
 
       function updateScoreboard(scores,victories,currentPlayer){
@@ -610,16 +574,7 @@
       }
 
 
-      // ===================================================================
-      // <<< INÍCIO DA MELHORIA (updateTurnInfo) >>>
-      //
-      // Removemos a checagem de `matchedPairs === EMOJI_COUNT`.
-      // Se `winner` não for nulo, o jogo acabou.
-      //
-      // function updateTurnInfo(currentPlayer, winner, player2_connected, matchedPairs){
-      // ===================================================================
       function updateTurnInfo(currentPlayer, winner, player2_connected){
-        // if (winner !== null && matchedPairs === EMOJI_COUNT) {
         if (winner !== null) {
           const wn = winner===1?playerNames[1]:(winner===2?playerNames[2]:'Empate');
           turnInfoEl.textContent = `Fim da Rodada! ${wn==='Empate'?wn:wn+' venceu!'}`;
@@ -632,9 +587,6 @@
           turnInfoEl.textContent = playerId===currentPlayer?`É a sua vez, ${playerNames[currentPlayer]}!`:`Vez de ${playerNames[currentPlayer]}`;
         }
       }
-      // ===================================================================
-      // <<< FIM DA MELHORIA >>>
-      // ===================================================================
 
       function resetBoardForNewRound(){
         if (checkMatchTimeout) {
