@@ -491,7 +491,7 @@
              return; 
           }
 
-          // Se o jogo JÁ acabou (winner foi setado), apenas limpa as cartas viradas.
+          // Se o jogo JÁ acabou...
           if (s.winner !== null) {
             if (s.flippedCards.length > 0) s.flippedCards = [];
             return s;
@@ -499,7 +499,7 @@
           
           // Guarda principal: só roda se tiver 2 cartas
           if (s.flippedCards.length !== 2) {
-            return;
+            return; 
           }
           
           let jogoAcabouAgora = false; // Flag interna da transação
@@ -583,6 +583,7 @@
       }
 
       function resetBoardForNewRound(){
+        // Limpa qualquer timeout pendente
         if (checkMatchTimeout) {
             clearTimeout(checkMatchTimeout);
             checkMatchTimeout = null;
@@ -608,17 +609,11 @@
       }
 
       resetButton.addEventListener('click',()=>{
-        // ===================================================================
-        // <<< INÍCIO DA CORREÇÃO (BUG FANTASMA) >>>
         // Limpa qualquer timeout pendente antes de sair da página
-        // ===================================================================
         if (checkMatchTimeout) {
             clearTimeout(checkMatchTimeout);
             checkMatchTimeout = null;
         }
-        // ===================================================================
-        // <<< FIM DA CORREÇÃO >>>
-        // ===================================================================
 
         if (confirm('Deseja sair?')){
           if (playerId===1 && gameStateRef) {
@@ -633,19 +628,13 @@
 
       initGame();
       
-      // ===================================================================
-      // <<< INÍCIO DA CORREÇÃO (BUG FANTASMA) >>>
       // Limpa qualquer timeout pendente se o usuário fechar a aba/recarregar
-      // ===================================================================
       window.addEventListener('beforeunload', () => {
         if (checkMatchTimeout) {
             clearTimeout(checkMatchTimeout);
             checkMatchTimeout = null;
         }
       });
-      // ===================================================================
-      // <<< FIM DA CORREÇÃO >>>
-      // ===================================================================
 
     });
   </script>
