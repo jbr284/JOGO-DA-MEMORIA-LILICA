@@ -10,6 +10,7 @@
     <style>
         :root {
             --bg-color: #1a1a2e; --card-color: #16213e; --text-color: #e94560; --accent-color: #ffffff;
+            --player1-color: #53a8b6; --player2-color: #e94560;
         }
         body {
             font-family: 'Arial', sans-serif; background-color: var(--bg-color); color: var(--accent-color);
@@ -55,10 +56,80 @@
         button:hover { background-color: #c93048; }
         button:disabled { background-color: #555; cursor: not-allowed; }
         .separator { margin: 25px 0; font-weight: bold; color: var(--accent-color); opacity: 0.6; }
-         @media (max-width: 480px) {
+         
+        /* ======== INÍCIO DO CSS DO CHAT DO LOBBY ======== */
+        .chat-container {
+            margin-top: 25px;
+            border: 2px solid var(--text-color);
+            border-radius: 8px;
+            overflow: hidden;
+            text-align: left;
+        }
+        .chat-messages {
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background-color: var(--bg-color);
+        }
+        /* Scrollbar */
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-thumb { background-color: var(--text-color); border-radius: 3px; }
+        .chat-messages::-webkit-scrollbar-track { background-color: #1a1a2e; }
+
+        .chat-msg {
+            max-width: 90%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            word-wrap: break-word;
+            line-height: 1.4;
+            background-color: #2a2a40;
+            align-self: flex-start;
+        }
+        .chat-msg strong {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 0.9em;
+            font-weight: bold;
+            color: var(--player2-color); /* Cor padrão para "outros" */
+        }
+        /* Minha Mensagem (Alinhada à direita) */
+        .chat-msg.self {
+            background-color: #0f3460;
+            align-self: flex-end;
+            border-top-right-radius: 0;
+        }
+        .chat-msg.self strong { color: var(--player1-color); }
+        
+        .chat-form { display: flex; }
+        .chat-form input {
+            flex-grow: 1;
+            border: none;
+            padding: 12px;
+            font-size: 0.9em;
+            background-color: var(--bg-color);
+            color: var(--accent-color);
+            border-radius: 0;
+            border-top: 2px solid var(--text-color);
+            text-align: left;
+        }
+        .chat-form button {
+            padding: 12px 15px;
+            font-size: 0.9em;
+            border-radius: 0;
+            margin: 0;
+            width: auto; /* Largura automática */
+            border-top: 2px solid var(--text-color);
+        }
+        /* ======== FIM DO CSS DO CHAT DO LOBBY ======== */
+         
+        @media (max-width: 480px) {
             .lobby-container { padding: 20px; }
             h1 { font-size: 1.8em; }
-         }
+        }
     </style>
 </head>
 <body>
@@ -82,7 +153,16 @@
             <input type="text" id="game-id-input" placeholder="ex: foxyz">
         </div>
         <button id="join-game-btn">Entrar na Sala</button>
-    </div>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="lobby-chat-messages">
+                </div>
+            <form class="chat-form" id="lobby-chat-form">
+                <input type="text" id="lobby-chat-input" placeholder="Digite no lobby global..." autocomplete="off" required>
+                <button type="submit">Enviar</button>
+            </form>
+        </div>
+        </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -114,14 +194,15 @@
                 '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔',
                 '🐧', '🐦'
             ];
-
-            playerNameInput.value = sessionStorage.getItem('jogoMemoriaPlayerName') || '';
-
+            
+            let lobbyChatListenerRef; // Listener para o chat do lobby
             let myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
             if (!myPlayerUUID) {
                 myPlayerUUID = Math.random().toString(36).substr(2, 9);
                 sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID);
             }
+
+            playerNameInput.value = sessionStorage.getItem('jogoMemoriaPlayerName') || '';
 
             function getPlayerName() {
                 const name = playerNameInput.value.trim();
@@ -169,6 +250,15 @@
 
                 try {
                     await gameStateRef.set(initialState);
+                    
+                    // Envia a mensagem ao chat do lobby ANTES de redirecionar
+                    await database.ref('lobby/chat').push({
+                      timestamp: firebase.database.ServerValue.TIMESTAMP,
+                      uuid: myPlayerUUID,
+                      name: playerName,
+                      message: `Criei a sala: ${gameId}`
+                    });
+
                     console.log(`Sala 'memory' criada:`, gameId);
                     window.location.href = `game.html?game=${gameId}`;
                 } catch (error) {
@@ -215,10 +305,79 @@
                 });
             });
 
+            // ======== INÍCIO DA LÓGICA DO CHAT DO LOBBY ========
+
+            // Adiciona uma mensagem na UI do Lobby e rola para o final
+            function addLobbyMessageToUI(msg) {
+                const chatMessagesEl = document.getElementById('lobby-chat-messages');
+                if (!chatMessagesEl) return; 
+
+                const msgEl = document.createElement('div');
+                msgEl.classList.add('chat-msg');
+                
+                const senderName = msg.name || 'Anônimo';
+                const safeMessage = msg.message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                msgEl.innerHTML = `<strong>${senderName}</strong> ${safeMessage}`;
+
+                if (msg.uuid === myPlayerUUID) {
+                    msgEl.classList.add('self');
+                }
+                
+                chatMessagesEl.appendChild(msgEl);
+                chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+            }
+
+            // Configura os listeners de envio e recebimento do lobby
+            function setupLobbyChat() {
+                const chatMessagesEl = document.getElementById('lobby-chat-messages');
+                const chatFormEl = document.getElementById('lobby-chat-form');
+                const chatInputEl = document.getElementById('lobby-chat-input');
+                
+                if (!chatFormEl || !chatMessagesEl || !chatInputEl) return;
+
+                const lobbyChatRef = database.ref('lobby/chat');
+
+                // --- 1. LÓGICA DE ENVIO (WRITE) ---
+                chatFormEl.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const playerName = getPlayerName(); // Pega/valida o nome primeiro
+                    if (!playerName) return; // getPlayerName() já mostra o alerta
+
+                    const messageText = chatInputEl.value.trim();
+                    if (messageText === '') return;
+
+                    const messagePayload = {
+                        timestamp: firebase.database.ServerValue.TIMESTAMP,
+                        uuid: myPlayerUUID,
+                        name: playerName,
+                        message: messageText
+                    };
+
+                    lobbyChatRef.push(messagePayload);
+                    chatInputEl.value = '';
+                });
+
+                // --- 2. LÓGICA DE RECEBIMENTO (READ) ---
+                if (lobbyChatListenerRef) lobbyChatListenerRef.off();
+                
+                lobbyChatListenerRef = lobbyChatRef.limitToLast(50); // Ouve as últimas 50 msgs
+                chatMessagesEl.innerHTML = '';
+
+                lobbyChatListenerRef.on('child_added', (snapshot) => {
+                    addLobbyMessageToUI(snapshot.val());
+                });
+            }
+
+            // Inicia o chat do lobby
+            setupLobbyChat();
+
+            // ======== FIM DA LÓGICA DO CHAT DO LOBBY ========
+
+
             // --- Registro do Service Worker ---
             if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg=>console.log('SW reg:', reg.scope)).catch(err=>console.log('SW error:', err)); }); }
         });
     </script>
 </body>
 </html>
-

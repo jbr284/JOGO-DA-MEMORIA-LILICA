@@ -1,9 +1,9 @@
 // ===============================
 // SERVICE WORKER - VERSÃO FINAL
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v3'; // ← altere o número para forçar nova versão
+const CACHE_NAME = 'jogos-online-cache-v4'; // <-- INCREMENTE ESTA VERSÃO (ex: v3 -> v4)
 const FILES_TO_CACHE = [
-  'index.html',
+  'index.html', // <-- Esta linha garante que o 'index.html' atualizado será pego
   'game.html',
   'manifest.json',
   'icons/icon-192.png',
@@ -23,7 +23,8 @@ self.addEventListener('install', (event) => {
         return Promise.all(
           FILES_TO_CACHE.map(async (url) => {
             try {
-              await cache.add(url);
+              // Força o re-cache de URLs que podem ter mudado
+              await cache.add(new Request(url, { cache: 'reload' }));
               console.log('[SW] Cacheado:', url);
             } catch (err) {
               console.warn('[SW] Falha ao cachear:', url, err);
