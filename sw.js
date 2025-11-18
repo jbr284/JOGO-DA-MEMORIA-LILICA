@@ -1,7 +1,7 @@
 // ===============================
 // SERVICE WORKER - VERSÃO FINAL
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v4'; // <-- VERIFIQUE SE ESTÁ v4
+const CACHE_NAME = 'jogos-online-cache-v3'; // ← altere o número para forçar nova versão
 const FILES_TO_CACHE = [
   'index.html',
   'game.html',
@@ -23,8 +23,7 @@ self.addEventListener('install', (event) => {
         return Promise.all(
           FILES_TO_CACHE.map(async (url) => {
             try {
-              // Força o re-cache de URLs que podem ter mudado
-              await cache.add(new Request(url, { cache: 'reload' })); // <-- VERIFIQUE ESTA LINHA
+              await cache.add(url);
               console.log('[SW] Cacheado:', url);
             } catch (err) {
               console.warn('[SW] Falha ao cachear:', url, err);
