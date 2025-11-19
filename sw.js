@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v6 (Confetes + Sons)
+// SERVICE WORKER - VERSÃO v7 (Novo Placar)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v6'; // <-- Mudamos para v6
+const CACHE_NAME = 'jogos-online-cache-v7'; // <-- VERSÃO INCREMENTADA
 const FILES_TO_CACHE = [
   'index.html',
   'game.html',
@@ -10,11 +10,11 @@ const FILES_TO_CACHE = [
   'icons/icon-512.png',
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js',
-  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js' // <-- Nova lib cacheada
+  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'
 ];
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Força atualização imediata
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return Promise.all(
