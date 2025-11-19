@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v7 (Novo Placar)
+// SERVICE WORKER - VERSÃO v8 (Ajuste Placar Texto)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v7'; // <-- VERSÃO INCREMENTADA
+const CACHE_NAME = 'jogos-online-cache-v8'; // <-- VERSÃO v8
 const FILES_TO_CACHE = [
   'index.html',
   'game.html',
