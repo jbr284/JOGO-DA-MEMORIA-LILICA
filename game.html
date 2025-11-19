@@ -125,9 +125,9 @@
 
     #game-id-display { font-size: 0.8em; color: var(--accent-color); margin-top: 10px; opacity: 0.7; }
 
-    /* ======== INÍCIO DO CÓDIGO DO CHAT (CSS) ======== */
+    /* ======== CHAT CSS ======== */
     .chat-container {
-      width: calc(6 * var(--card-size) + 5 * var(--board-gap)); /* Mesma largura do tabuleiro */
+      width: calc(6 * var(--card-size) + 5 * var(--board-gap));
       max-width: 95%;
       margin-top: 20px;
       background-color: var(--card-color);
@@ -137,15 +137,14 @@
     }
 
     .chat-messages {
-      height: 180px; /* Altura fixa para o chat */
-      overflow-y: auto; /* Scroll vertical */
+      height: 180px;
+      overflow-y: auto;
       padding: 10px;
       display: flex;
       flex-direction: column;
-      gap: 8px; /* Espaço entre as mensagens */
+      gap: 8px;
     }
 
-    /* Estilização da barra de rolagem (Bônus, mas elegante) */
     .chat-messages::-webkit-scrollbar { width: 6px; }
     .chat-messages::-webkit-scrollbar-thumb { background-color: var(--text-color); border-radius: 3px; }
     .chat-messages::-webkit-scrollbar-track { background-color: var(--bg-color); }
@@ -158,58 +157,26 @@
       word-wrap: break-word;
       line-height: 1.4;
     }
-    .chat-msg strong {
-      display: block;
-      margin-bottom: 3px;
-      font-size: 0.9em;
-      font-weight: bold;
-    }
+    .chat-msg strong { display: block; margin-bottom: 3px; font-size: 0.9em; font-weight: bold; }
+    
+    .chat-msg.opponent { background-color: #2a2a40; align-self: flex-start; border-top-left-radius: 0; }
+    .chat-msg.opponent strong { color: var(--player2-color); }
 
-    /* Mensagem do Oponente (Alinhada à esquerda) */
-    .chat-msg.opponent {
-      background-color: #2a2a40; /* Um pouco mais claro que o fundo */
-      align-self: flex-start;
-      border-top-left-radius: 0;
-    }
-    .chat-msg.opponent strong { color: var(--player2-color); } /* Cor do P2 */
+    .chat-msg.self { background-color: var(--card-flipped-color); align-self: flex-end; border-top-right-radius: 0; }
+    .chat-msg.self strong { color: var(--player1-color); }
 
-    /* Minha Mensagem (Alinhada à direita) */
-    .chat-msg.self {
-      background-color: var(--card-flipped-color);
-      align-self: flex-end;
-      border-top-right-radius: 0;
-    }
-    .chat-msg.self strong { color: var(--player1-color); } /* Cor do P1 */
-
-    .chat-form {
-      display: flex;
-      padding: 8px;
-      background-color: var(--bg-color);
-      border-top: 1px solid var(--card-color);
-    }
+    .chat-form { display: flex; padding: 8px; background-color: var(--bg-color); border-top: 1px solid var(--card-color); }
     .chat-form input {
-      flex-grow: 1;
-      border: none;
-      padding: 10px;
-      border-radius: 6px 0 0 6px;
-      background-color: var(--card-color);
-      color: var(--accent-color);
-      font-size: 0.9em;
+      flex-grow: 1; border: none; padding: 10px; border-radius: 6px 0 0 6px;
+      background-color: var(--card-color); color: var(--accent-color); font-size: 0.9em;
     }
     .chat-form input:focus { outline: 1px solid var(--player1-color); }
     .chat-form button {
-      border: none;
-      padding: 10px 15px;
-      background-color: var(--text-color);
-      color: var(--accent-color);
-      cursor: pointer;
-      border-radius: 0 6px 6px 0;
-      font-size: 0.9em;
-      margin: 0; /* Reseta a margem padrão dos botões */
+      border: none; padding: 10px 15px; background-color: var(--text-color);
+      color: var(--accent-color); cursor: pointer; border-radius: 0 6px 6px 0; font-size: 0.9em; margin: 0;
     }
     .chat-form button:hover { background-color: #c93048; }
-    /* ======== FIM DO CÓDIGO DO CHAT (CSS) ======== */
-
+    /* ======== FIM CHAT CSS ======== */
   </style>
 </head>
 <body>
@@ -227,8 +194,7 @@
   <button id="reset-button">Voltar ao Lobby</button>
   
   <div class="chat-container">
-    <div class="chat-messages" id="chat-messages">
-      </div>
+    <div class="chat-messages" id="chat-messages"></div>
     <form class="chat-form" id="chat-form">
       <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off" required>
       <button type="submit">Enviar</button>
@@ -261,7 +227,9 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const emojis = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦'];
-      const EMOJI_COUNT = emojis.length; // Salva o total de pares (18)
+      const EMOJI_COUNT = emojis.length; 
+      // Regra de Ouro: Metade + 1. Se temos 18 pares, quem faz 10 ganha.
+      const WINNING_SCORE = Math.floor(EMOJI_COUNT / 2) + 1; 
 
       const gameBoard = document.getElementById('game-board');
       const player1InfoEl = document.getElementById('player1-info');
@@ -271,7 +239,7 @@
       const playAgainBtn = document.getElementById('play-again-btn');
       const gameIdDisplay = document.getElementById('game-id-display');
 
-      let gameStateRef, gameId, playerId, chatListenerRef; // <-- Variável do listener do chat adicionada
+      let gameStateRef, gameId, playerId, chatListenerRef;
       let checkMatchTimeout = null; 
       let myPlayerUUID, playerNames = {1: "P1", 2: "P2"};
 
@@ -308,122 +276,82 @@
         });
       }
 
-      // ======== INÍCIO DO CÓDIGO DO CHAT (JS - Funções) ========
-
-      // Adiciona uma mensagem na UI e rola para o final
+      // --- CHAT FUNCTIONS ---
       function addMessageToUI(msg) {
         const chatMessagesEl = document.getElementById('chat-messages');
-        if (!chatMessagesEl) return; // Segurança
+        if (!chatMessagesEl) return;
 
         const msgEl = document.createElement('div');
         msgEl.classList.add('chat-msg');
         
-        // Define o nome do remetente
         const senderName = (msg.playerId === playerId) ? 'Você' : (msg.name || 'Oponente');
-        // Sanitização básica (opcional, mas boa prática)
         const safeMessage = msg.message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
         msgEl.innerHTML = `<strong>${senderName}</strong> ${safeMessage}`;
 
-        // Aplica a classe 'self' ou 'opponent' para estilização CSS
-        if (msg.playerId === playerId) {
-          msgEl.classList.add('self');
-        } else {
-          msgEl.classList.add('opponent');
-        }
+        if (msg.playerId === playerId) msgEl.classList.add('self');
+        else msgEl.classList.add('opponent');
         
-        // Bônus: aplica a cor do jogador (se o CSS não pegar)
-        if (msg.playerId === 1) {
-            msgEl.querySelector('strong').style.color = 'var(--player1-color)';
-        } else if (msg.playerId === 2) {
-            msgEl.querySelector('strong').style.color = 'var(--player2-color)';
-        }
+        if (msg.playerId === 1) msgEl.querySelector('strong').style.color = 'var(--player1-color)';
+        else if (msg.playerId === 2) msgEl.querySelector('strong').style.color = 'var(--player2-color)';
 
         chatMessagesEl.appendChild(msgEl);
-        
-        // Auto-scroll para a mensagem mais recente
         chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
       }
 
-      // Configura os listeners de envio e recebimento de mensagens
       function setupChatListeners() {
         const chatMessagesEl = document.getElementById('chat-messages');
         const chatFormEl = document.getElementById('chat-form');
         const chatInputEl = document.getElementById('chat-input');
         
-        if (!chatFormEl || !chatMessagesEl || !chatInputEl) return; // Aborta se a UI não estiver lá
+        if (!chatFormEl || !chatMessagesEl || !chatInputEl) return;
 
         const chatRef = database.ref('games/' + gameId + '/chat');
 
-        // --- 1. LÓGICA DE ENVIO (WRITE) ---
         chatFormEl.addEventListener('submit', (e) => {
           e.preventDefault();
           const messageText = chatInputEl.value.trim();
-          
-          if (messageText === '') return; // Não envia mensagens vazias
+          if (messageText === '') return;
 
-          // O payload que será salvo no Firebase
           const messagePayload = {
-            timestamp: firebase.database.ServerValue.TIMESTAMP, // Usa a hora do servidor
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
             playerId: playerId,
-            name: playerNames[playerId] || `Jogador ${playerId}`, // Pega o nome já carregado
+            name: playerNames[playerId] || `Jogador ${playerId}`,
             message: messageText
           };
-
-          // O .push() gera uma ID única e envia os dados
           chatRef.push(messagePayload);
-          
-          chatInputEl.value = ''; // Limpa o input
+          chatInputEl.value = '';
         });
-
-        // --- 2. LÓGICA DE RECEBIMENTO (READ) ---
         
-        // Remove listeners antigos para evitar duplicatas
         if (chatListenerRef) chatListenerRef.off();
-
-        // Define o novo listener
-        chatListenerRef = chatRef.limitToLast(30); // Ouve apenas as últimas 30 msgs
-
-        // Limpa o chat local para não duplicar mensagens
+        chatListenerRef = chatRef.limitToLast(30);
         chatMessagesEl.innerHTML = '';
-
-        // O 'child_added' é otimizado: só roda para CADA nova mensagem adicionada
-        chatListenerRef.on('child_added', (snapshot) => {
-          addMessageToUI(snapshot.val());
-        });
+        chatListenerRef.on('child_added', (snapshot) => addMessageToUI(snapshot.val()));
       }
-      // ======== FIM DO CÓDIGO DO CHAT (JS - Funções) ========
+      // --- FIM CHAT FUNCTIONS ---
 
       function setupGameListeners() {
         gameIdDisplay.textContent = `ID da Sala: ${gameId}`;
         if (gameStateRef) gameStateRef.off();
-        if (chatListenerRef) chatListenerRef.off(); // <-- Limpa listener de chat antigo
+        if (chatListenerRef) chatListenerRef.off();
 
-        setupChatListeners(); // <-- ATIVA O CHAT
+        setupChatListeners();
 
         gameStateRef.on('value', snap => {
           const s = snap.val(); 
           
           if (!s) {
-            if (checkMatchTimeout) {
-                clearTimeout(checkMatchTimeout);
-                checkMatchTimeout = null;
-            }
+            if (checkMatchTimeout) { clearTimeout(checkMatchTimeout); checkMatchTimeout = null; }
             alert("A sala foi fechada pelo anfitrião.");
             window.location.href = 'index.html';
             return;
           }
 
-          const matchedPairs = s.matchedPairs || 0;
-
           playerNames[1] = s.player1_name || "P1";
           playerNames[2] = s.player2_name || "P2";
           updateScoreboard(s.scores || {1:0,2:0}, s.victories || {1:0,2:0}, s.currentPlayer);
           
-          // ================== INÍCIO DA CORREÇÃO 1 ==================
-          // Passamos a contagem de pares para as funções de UI
-          updateTurnInfo(s.currentPlayer, s.winner, s.player2_uuid, matchedPairs);
-          renderBoard(s.board || {}, s.winner, matchedPairs);
-          // =================== FIM DA CORREÇÃO 1 ====================
+          updateTurnInfo(s.currentPlayer, s.winner, s.player2_uuid);
+          renderBoard(s.board || {}, s.winner);
 
           if (s.flippedCards?.length === 2 && playerId === s.currentPlayer) {
             if (checkMatchTimeout === null) {
@@ -435,25 +363,18 @@
           } 
           
           if (s.flippedCards?.length < 2) {
-            if (checkMatchTimeout) {
-              clearTimeout(checkMatchTimeout);
-              checkMatchTimeout = null;
-            }
+            if (checkMatchTimeout) { clearTimeout(checkMatchTimeout); checkMatchTimeout = null; }
           }
         });
       }
 
-      // ================== INÍCIO DA CORREÇÃO 2 ==================
-      // Adicionamos 'matchedPairs' como parâmetro
-      function renderBoard(boardState, winner, matchedPairs) {
+      function renderBoard(boardState, winner) {
         gameBoard.innerHTML = '';
         Object.values(boardState).forEach(c => gameBoard.appendChild(createCardElement(c)));
         
-        // Agora, o botão só aparece se o 'winner' for não-nulo E
-        // o total de pares for 18 (o jogo realmente terminou)
-        playAgainBtn.style.display = (winner !== null && matchedPairs === EMOJI_COUNT) ? 'block' : 'none';
+        // LÓGICA ATUALIZADA: Se tiver vencedor, mostra o botão, independente de matchedPairs
+        playAgainBtn.style.display = (winner !== null) ? 'block' : 'none';
       }
-      // =================== FIM DA CORREÇÃO 2 ====================
 
       function createCardElement(cd) {
         const card = document.createElement('div');
@@ -475,12 +396,11 @@
 
         gameStateRef.transaction(s => {
           if (!s) return s;
-          const flipped = s.flippedCards || [];
+          // Se já tem ganhador, bloqueia cliques
+          if (s.winner !== null) return;
 
-          if (s.currentPlayer !== playerId || 
-              flipped.length >= 2 || 
-              s.board[cd.id].isMatched ||
-              s.board[cd.id].isFlipped) {
+          const flipped = s.flippedCards || [];
+          if (s.currentPlayer !== playerId || flipped.length >= 2 || s.board[cd.id].isMatched || s.board[cd.id].isFlipped) {
             return; 
           }
 
@@ -492,17 +412,12 @@
 
       function checkForMatch() {
         gameStateRef.transaction(s => {
-          if (!s || !s.flippedCards || s.flippedCards.length !== 2) {
-             return; 
-          }
+          if (!s || !s.flippedCards || s.flippedCards.length !== 2) return;
           
           const [a,b] = s.flippedCards;
           const c1 = s.board[a], c2 = s.board[b];
 
-          if (!c1 || !c2) {
-            s.flippedCards = []; 
-            return s; 
-          }
+          if (!c1 || !c2) { s.flippedCards = []; return s; }
 
           const match = c1.emoji === c2.emoji;
           if (match) {
@@ -515,15 +430,18 @@
           }
           s.flippedCards = []; 
           
-          // A lógica de setar o 'winner' (que usamos no EMOJI_COUNT)
-          if (s.matchedPairs === EMOJI_COUNT) {
-            const [p1,p2] = [s.scores[1],s.scores[2]];
-            s.winner = p1>p2?1:(p2>p1?2:0);
-            
-            // CORREÇÃO BÔNUS: Um empate (s.winner === 0) não era contado
-            if (s.winner !== 0 && s.winner !== null) {
-                s.victories[s.winner]++;
-            }
+          // LÓGICA DE VITÓRIA ANTECIPADA
+          const p1Score = s.scores[1];
+          const p2Score = s.scores[2];
+
+          if (p1Score >= WINNING_SCORE || p2Score >= WINNING_SCORE || s.matchedPairs === EMOJI_COUNT) {
+             if (s.winner === null) {
+                if (p1Score > p2Score) s.winner = 1;
+                else if (p2Score > p1Score) s.winner = 2;
+                else s.winner = 0; // Empate
+
+                if (s.winner !== 0) s.victories[s.winner]++;
+             }
           }
           return s; 
         });
@@ -536,36 +454,25 @@
         player2InfoEl.classList.toggle('active',currentPlayer===2);
       }
 
-      // ================== INÍCIO DA CORREÇÃO 3 ==================
-      // Adicionamos 'matchedPairs' como parâmetro
-      function updateTurnInfo(currentPlayer, winner, player2_connected, matchedPairs){
-        // Agora, a mensagem de Fim de Rodada só aparece se o 'winner' for não-nulo E
-        // o total de pares for 18 (o jogo realmente terminou)
-        if (winner !== null && matchedPairs === EMOJI_COUNT) {
+      function updateTurnInfo(currentPlayer, winner, player2_connected){
+        // LÓGICA ATUALIZADA: Se tiver vencedor, mostra fim de jogo
+        if (winner !== null) {
           const wn = winner===1?playerNames[1]:(winner===2?playerNames[2]:'Empate');
-          turnInfoEl.textContent = `Fim da Rodada! ${wn==='Empate'?wn:wn+' venceu!'}`;
+          turnInfoEl.textContent = `Fim de Jogo! ${wn==='Empate'?wn:wn+' venceu!'}`;
         } else {
-          // Caso contrário (jogo em andamento OU estado corrompido),
-          // mostramos a informação de turno normal.
           if (!player2_connected){ 
             turnInfoEl.textContent="Aguardando Jogador 2..."; 
-            return; // Adicionado 'return' para evitar que a linha de baixo execute
+            return;
           }
           turnInfoEl.textContent = playerId===currentPlayer?`É a sua vez, ${playerNames[currentPlayer]}!`:`Vez de ${playerNames[currentPlayer]}`;
         }
       }
-      // =================== FIM DA CORREÇÃO 3 ====================
 
       function resetBoardForNewRound(){
-        if (checkMatchTimeout) {
-            clearTimeout(checkMatchTimeout);
-            checkMatchTimeout = null;
-        }
+        if (checkMatchTimeout) { clearTimeout(checkMatchTimeout); checkMatchTimeout = null; }
 
         gameStateRef.transaction(s=>{
           if (!s) return s;
-          
-          // Limpa o chat para a nova rodada (opcional, mas recomendado)
           if (s.chat) s.chat = null; 
 
           const lastWinner = s.winner;
@@ -575,8 +482,10 @@
           s.scores={1:0,2:0};
           s.flippedCards=[];
           s.matchedPairs=0;
-          s.winner=null; // Esta linha (correta) limpa o estado
-          s.currentPlayer = (lastWinner === 1) ? 2 : 1; // Simplificado: Se P1 ganhou, P2 começa. Senão (empate ou P2 ganhou), P1 começa.
+          s.winner=null;
+          // Se teve empate ou erro, P1 começa. Senão, quem perdeu começa (ou quem ganhou passa a vez, aqui: troca).
+          // Lógica simples: inverte quem começou. Se P1 ganhou, P2 começa.
+          s.currentPlayer = (lastWinner === 1) ? 2 : 1; 
           return s;
         });
       }
