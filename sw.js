@@ -1,10 +1,10 @@
 // ===============================
-// SERVICE WORKER - VERSÃO FINAL
+// SERVICE WORKER - VERSÃO FINAL (ATUALIZADA PARA v5)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v4'; // <-- INCREMENTE ESTA VERSÃO (ex: v3 -> v4)
+const CACHE_NAME = 'jogos-online-cache-v5'; // <-- VERSÃO INCREMENTADA
 const FILES_TO_CACHE = [
-  'index.html', // <-- Esta linha garante que o 'index.html' atualizado será pego
-  'game.html',
+  'index.html', 
+  'game.html', // Agora o SW vai buscar a versão atualizada deste arquivo
   'manifest.json',
   'icons/icon-192.png',
   'icons/icon-512.png',
@@ -14,7 +14,7 @@ const FILES_TO_CACHE = [
 
 // Instala o SW e faz o cache inicial
 self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando nova versão...');
+  console.log('[SW] Instalando nova versão (v5)...');
 
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -55,13 +55,11 @@ self.addEventListener('activate', (event) => {
 
 // Estratégia de rede + cache (Network First)
 self.addEventListener('fetch', (event) => {
-  // Ignora requisições não-HTTP (extensões, devtools, etc.)
   if (!event.request.url.startsWith('http')) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Salva nova resposta no cache para uso futuro
         const clone = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, clone);
@@ -69,14 +67,12 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        // Se offline, tenta pegar do cache
         return caches.match(event.request)
           .then((cached) => cached || caches.match('index.html'));
       })
   );
 });
 
-// Atualiza automaticamente os clientes abertos quando um novo SW é instalado
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
