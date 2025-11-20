@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v8 (Ajuste Placar Texto)
+// SERVICE WORKER - VERSÃO v10 (Fix Nome Cortado)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v8'; // <-- VERSÃO v8
+const CACHE_NAME = 'jogos-online-cache-v10'; // <-- VERSÃO ATUALIZADA
 const FILES_TO_CACHE = [
   'index.html',
   'game.html',
