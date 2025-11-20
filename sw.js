@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v10 (Fix Nome Cortado)
+// SERVICE WORKER - VERSÃO v13 (Fix Turn Security)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v10'; // <-- VERSÃO ATUALIZADA
+const CACHE_NAME = 'jogos-online-cache-v13'; // <-- ATUALIZADO PARA v13
 const FILES_TO_CACHE = [
   'index.html',
   'game.html',
