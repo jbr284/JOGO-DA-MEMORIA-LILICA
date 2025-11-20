@@ -32,7 +32,6 @@
       flex: 1; background: rgba(22, 33, 62, 0.6); border-radius: 12px; padding: 10px;
       display: flex; flex-direction: column; align-items: center; position: relative;
       border: 2px solid transparent; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      /* Garante que o card tenha tamanho mínimo para acomodar texto */
       min-width: 130px; 
     }
     .player-card.p1 { border-color: var(--player1-color); color: var(--player1-color); }
@@ -42,22 +41,13 @@
     .player-card.p2.active { box-shadow: 0 0 15px rgba(233, 69, 96, 0.4); }
 
     .player-header { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; width: 100%; }
-    .player-avatar { font-size: 1.5em; flex-shrink: 0; /* Impede que o emoji encolha */ }
+    .player-avatar { font-size: 1.5em; flex-shrink: 0; }
     
-    /* --- CORREÇÃO AQUI --- */
+    /* CSS CORRIGIDO PARA NOME NÃO CORTAR */
     .player-name { 
-      font-size: 0.95em; 
-      font-weight: bold; 
-      text-transform: uppercase; 
-      letter-spacing: 0.5px; 
-      /* Configurações para mostrar nome inteiro */
-      white-space: normal; /* Permite quebrar linha se necessário */
-      line-height: 1.1;    /* Linhas mais próximas */
-      max-width: 100%;     /* Usa todo o espaço disponível no card */
-      word-wrap: break-word; 
-      text-align: left;
+      font-size: 0.95em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; 
+      white-space: normal; line-height: 1.1; max-width: 100%; word-wrap: break-word; text-align: left;
     }
-    /* --------------------- */
 
     .stats-container { display: flex; gap: 12px; background: rgba(0,0,0,0.2); padding: 6px 12px; border-radius: 15px; }
     .stat-box { display: flex; flex-direction: column; align-items: center; line-height: 1; min-width: 35px; }
@@ -197,16 +187,7 @@
       appId: "1:683788488529:web:727316a3e182257a2d8d70"
     };
     firebase.initializeApp(firebaseConfig);
-    const realDB = firebase.database();
-
-    class LocalGameAdapter {
-        constructor(initialState) { this.state = initialState; this.listeners = []; }
-        on(eventType, callback) { this.listeners.push(callback); callback({ val: () => this.state }); }
-        off() { this.listeners = []; }
-        transaction(updateFn) { const result = updateFn(this.state); if (result) { this.state = result; this.notify(); } }
-        remove() { return Promise.resolve(); }
-        notify() { this.listeners.forEach(cb => cb({ val: () => this.state })); }
-    }
+    const database = firebase.database();
 
     document.addEventListener('DOMContentLoaded', () => {
       const emojis = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦'];
@@ -219,53 +200,46 @@
       const playAgainBtn = document.getElementById('play-again-btn');
       const gameIdDisplay = document.getElementById('game-id-display');
 
-      let gameAdapter, playerId, playerNames = {1: "P1", 2: "P2"};
-      let lastMatchedCount = 0, gameWasWon = false, isCpuMode = false;
-      let cpuMemory = {}, checkMatchTimeout = null;
+      let gameStateRef, gameId, playerId, chatListenerRef;
+      let lastMatchedCount = 0, gameWasWon = false;
+      let checkMatchTimeout = null;
+      let playerNames = {1: "P1", 2: "P2"};
 
       async function initGame() {
         const urlParams = new URLSearchParams(window.location.search);
-        const mode = urlParams.get('mode');
-        const gameIdParam = urlParams.get('game');
-        const myPlayerName = sessionStorage.getItem('jogoMemoriaPlayerName') || 'Jogador 1';
+        gameId = urlParams.get('game');
+        const myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
 
-        if (mode === 'cpu') {
-            isCpuMode = true; playerId = 1;
-            document.getElementById('main-chat').style.display = 'none';
-            document.getElementById('p2-avatar').textContent = '🤖';
-            const pairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
-            const board = {}; pairs.forEach((e, i) => board[i] = { id: i, emoji: e, isFlipped: false, isMatched: false });
-            const initialState = { player1_name: myPlayerName, player2_name: 'Robô CPU', player2_uuid: 'cpu', currentPlayer: 1, winner: null, victories: {1:0, 2:0}, board: board, scores: {1:0, 2:0}, flippedCards: [], matchedPairs: 0 };
-            gameAdapter = new LocalGameAdapter(initialState); setupGameListeners();
-        } else if (gameIdParam) {
-            const myUUID = sessionStorage.getItem('jogoMemoriaUUID');
-            if (!myUUID) { window.location.href = 'index.html'; return; }
-            const ref = realDB.ref('games/' + gameIdParam);
-            const snap = await ref.once('value');
-            if (!snap.val()) { alert("Sala inválida."); window.location.href='index.html'; return; }
-            ref.transaction(cs => {
-                if (!cs) return cs;
-                if (cs.player1_uuid === myUUID) playerId = 1;
-                else if (cs.player2_uuid === myUUID) playerId = 2;
-                else if (!cs.player2_uuid) { playerId = 2; cs.player2_uuid = myUUID; cs.player2_name = myPlayerName; }
-                return cs;
-            }, (err, committed, s2) => {
-                if (err || !committed && s2.val().player2_uuid !== myUUID && s2.val().player1_uuid !== myUUID) { alert("Sala cheia!"); window.location.href='index.html'; }
-                else { gameAdapter = ref; setupGameListeners(); }
-            });
-        } else { window.location.href = 'index.html'; }
+        if (!myPlayerUUID || !gameId) { window.location.href = 'index.html'; return; }
+
+        gameStateRef = database.ref('games/' + gameId);
+        const snapshot = await gameStateRef.once('value');
+        const state = snapshot.val();
+
+        if (!state || state.gameType !== 'memory') { alert("Sala inválida."); window.location.href = 'index.html'; return; }
+
+        gameStateRef.transaction(cs => {
+          if (!cs) return cs;
+          if (cs.player1_uuid === myPlayerUUID) playerId = 1;
+          else if (cs.player2_uuid === myPlayerUUID) playerId = 2;
+          else if (!cs.player2_uuid) {
+            playerId = 2; cs.player2_uuid = myPlayerUUID;
+            cs.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || 'Jogador 2';
+          } else { alert("Sala cheia!"); window.location.href = 'index.html'; return; }
+          return cs;
+        }, (err, ok) => {
+          if (err || !ok) window.location.href = 'index.html'; else setupGameListeners();
+        });
       }
 
       function setupGameListeners() {
-        if (!isCpuMode) {
-             const urlParams = new URLSearchParams(window.location.search);
-             gameIdDisplay.textContent = `ID: ${urlParams.get('game')}`;
-             setupChatListeners(urlParams.get('game'));
-        } else { gameIdDisplay.textContent = "Modo: Contra CPU"; }
+        gameIdDisplay.textContent = `ID: ${gameId}`;
+        if (gameStateRef) gameStateRef.off();
+        setupChatListeners();
 
-        gameAdapter.on('value', snap => {
-          const s = snap.val();
-          if (!s) { if(!isCpuMode) alert("Sala fechada."); window.location.href='index.html'; return; }
+        gameStateRef.on('value', snap => {
+          const s = snap.val(); 
+          if (!s) { alert("Sala fechada."); window.location.href = 'index.html'; return; }
 
           playerNames[1] = s.player1_name || "P1";
           playerNames[2] = s.player2_name || "P2";
@@ -280,49 +254,13 @@
           updateTurnInfo(s.currentPlayer, s.winner, s.player2_uuid);
           renderBoard(s.board || {}, s.winner);
 
-          if (s.flippedCards?.length === 2) { if (!checkMatchTimeout) { checkMatchTimeout = setTimeout(() => { checkForMatch(); checkMatchTimeout = null; }, 900); } }
-          if (isCpuMode && s.flippedCards && s.flippedCards.length > 0) s.flippedCards.forEach(id => { if(s.board[id]) cpuMemory[id] = s.board[id].emoji; });
-          if (isCpuMode && s.currentPlayer === 2 && !hasWinner && s.flippedCards?.length === 0) setTimeout(cpuTurn, 1200);
+          if (s.flippedCards?.length === 2 && playerId === s.currentPlayer) {
+            if (!checkMatchTimeout) {
+              checkMatchTimeout = setTimeout(() => { checkForMatch(); checkMatchTimeout = null; }, 900);
+            }
+          } 
         });
       }
-
-      function cpuTurn() {
-          if (!gameAdapter.state) return;
-          const board = gameAdapter.state.board;
-          const availableIds = Object.values(board).filter(c => !c.isMatched && !c.isFlipped).map(c => c.id);
-          if (availableIds.length === 0) return;
-
-          let firstChoice = null, secondChoice = null;
-          const memoryIds = Object.keys(cpuMemory).filter(id => !board[id].isMatched);
-          let foundPair = null;
-          
-          for (let i = 0; i < memoryIds.length; i++) {
-              for (let j = i + 1; j < memoryIds.length; j++) {
-                  if (cpuMemory[memoryIds[i]] === cpuMemory[memoryIds[j]]) { foundPair = [parseInt(memoryIds[i]), parseInt(memoryIds[j])]; break; }
-              }
-              if (foundPair) break;
-          }
-
-          if (foundPair) { firstChoice = foundPair[0]; secondChoice = foundPair[1]; if (Math.random() > 0.9) { firstChoice = null; secondChoice = null; } }
-          if (firstChoice === null) firstChoice = availableIds[Math.floor(Math.random() * availableIds.length)];
-
-          performCpuClick(firstChoice);
-
-          setTimeout(() => {
-             if (!secondChoice) {
-                 const firstCardEmoji = board[firstChoice].emoji;
-                 const matchInMemory = Object.keys(cpuMemory).find(id => parseInt(id) !== firstChoice && cpuMemory[id] === firstCardEmoji && !board[id].isMatched);
-                 if (matchInMemory) secondChoice = parseInt(matchInMemory);
-                 else {
-                     const remaining = availableIds.filter(id => id !== firstChoice);
-                     if (remaining.length > 0) secondChoice = remaining[Math.floor(Math.random() * remaining.length)];
-                 }
-             }
-             if (secondChoice !== null) performCpuClick(secondChoice);
-          }, 800);
-      }
-
-      function performCpuClick(cardId) { onCardClick({id: cardId}); }
 
       function updateScoreboard(scores, victories, currentPlayer) {
         if (!scores) scores = {1: 0, 2: 0}; if (!victories) victories = {1: 0, 2: 0};
@@ -359,27 +297,32 @@
         card.classList.toggle('matched', cd.isMatched);
         card.innerHTML = `<div class="card-face card-front">${cd.emoji}</div><div class="card-face card-back"></div>`;
         if (!cd.isMatched) {
-            card.addEventListener('click', () => { 
-                if (isCpuMode && gameAdapter.state.currentPlayer === 2) return;
-                sfx.flip(); onCardClick(cd); 
-            });
+            card.addEventListener('click', () => { sfx.flip(); onCardClick(cd); });
         }
         return card;
       }
 
       function onCardClick(cd) {
         if (checkMatchTimeout !== null) return; 
-        gameAdapter.transaction(s => {
+        
+        // AQUI ESTÁ A CORREÇÃO DO BUG DE CLIQUES SIMULTÂNEOS
+        gameStateRef.transaction(s => {
           if (!s || (s.winner !== null && s.winner !== undefined)) return;
+          
+          // TRAVA DE SEGURANÇA: Se não for meu turno, rejeita a ação no banco.
+          if (s.currentPlayer !== playerId) return;
+
           const flipped = s.flippedCards || [];
           if (flipped.length >= 2 || s.board[cd.id].isMatched || s.board[cd.id].isFlipped) return;
-          s.board[cd.id].isFlipped = true; s.flippedCards = [...flipped, cd.id];
+          
+          s.board[cd.id].isFlipped = true;
+          s.flippedCards = [...flipped, cd.id];
           return s;
         });
       }
 
       function checkForMatch() {
-        gameAdapter.transaction(s => {
+        gameStateRef.transaction(s => {
           if (!s || !s.flippedCards || s.flippedCards.length !== 2) return;
           const [a,b] = s.flippedCards; const c1 = s.board[a], c2 = s.board[b];
           if (!c1 || !c2) { s.flippedCards = []; return s; }
@@ -408,23 +351,25 @@
           turnInfoEl.textContent = `Fim! ${wn==='Empate'?wn:wn+' venceu!'}`; turnInfoEl.style.color = "#ffd700";
         } else {
           turnInfoEl.style.color = "#ccc";
-          if (!isCpuMode && !p2uuid) { turnInfoEl.textContent="Aguardando Oponente..."; return; }
-          if (isCpuMode) turnInfoEl.textContent = cp===1 ? "Sua vez!" : "Vez do Robô...";
-          else turnInfoEl.textContent = playerId===cp?`Sua vez!`:`Vez de ${playerNames[cp]}`;
+          if (!p2uuid) { turnInfoEl.textContent="Aguardando Oponente..."; return; }
+          turnInfoEl.textContent = playerId===cp?`Sua vez!`:`Vez de ${playerNames[cp]}`;
         }
       }
 
-      function setupChatListeners(gId) {
+      function setupChatListeners() {
         const cm = document.getElementById('chat-messages');
         const cf = document.getElementById('chat-form');
         const ci = document.getElementById('chat-input');
-        const cr = realDB.ref('games/' + gId + '/chat');
+        const cr = database.ref('games/' + gameId + '/chat');
         cf.addEventListener('submit', e => {
           e.preventDefault(); const txt = ci.value.trim(); if(!txt)return;
           cr.push({ timestamp: firebase.database.ServerValue.TIMESTAMP, playerId, name: playerNames[playerId], message: txt });
           ci.value = '';
         });
-        cr.limitToLast(30).on('child_added', sn => {
+        if (chatListenerRef) chatListenerRef.off();
+        chatListenerRef = cr.limitToLast(30);
+        cm.innerHTML = '';
+        chatListenerRef.on('child_added', sn => {
           const m = sn.val(); const d = document.createElement('div'); d.classList.add('chat-msg', m.playerId===playerId?'self':'opponent');
           d.innerHTML = `<strong style="color:var(--player${m.playerId}-color)">${m.playerId===playerId?'Você':(m.name||'Op')}</strong> ${m.message.replace(/</g,"&lt;")}`;
           cm.appendChild(d); cm.scrollTop = cm.scrollHeight;
@@ -433,8 +378,7 @@
 
       playAgainBtn.addEventListener('click', () => {
         if (checkMatchTimeout) { clearTimeout(checkMatchTimeout); checkMatchTimeout = null; }
-        if(isCpuMode) cpuMemory = {};
-        gameAdapter.transaction(s=>{
+        gameStateRef.transaction(s=>{
           if (!s) return s; s.chat = null; const lw = s.winner;
           const pairs = [...emojis,...emojis].sort(()=>0.5-Math.random());
           s.board = {}; pairs.forEach((e,i)=>s.board[i]={id:i,emoji:e,isFlipped:false,isMatched:false});
