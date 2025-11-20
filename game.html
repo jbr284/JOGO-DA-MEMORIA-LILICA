@@ -1,53 +1,452 @@
-// ===============================
-// SERVICE WORKER - VERSÃO v10 (Fix Nome Cortado)
-// ===============================
-const CACHE_NAME = 'jogos-online-cache-v10'; // <-- VERSÃO ATUALIZADA
-const FILES_TO_CACHE = [
-  'index.html',
-  'game.html',
-  'manifest.json',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js',
-  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'
-];
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo da Memória</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <meta name="theme-color" content="#16213e">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return Promise.all(
-        FILES_TO_CACHE.map((url) => cache.add(new Request(url, { cache: 'reload' })).catch(console.warn))
-      );
-    })
-  );
-});
+  <style>
+    :root {
+      --bg-color: #1a1a2e; --card-color: #16213e; --card-flipped-color: #0f3460;
+      --text-color: #e94560; --accent-color: #ffffff;
+      --player1-color: #53a8b6; --player2-color: #e94560;
+      --card-size: 60px; --board-gap: 8px;
+    }
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((names) => Promise.all(
-      names.map((name) => {
-        if (name !== CACHE_NAME) return caches.delete(name);
-      })
-    )).then(() => self.clients.claim())
-  );
-});
+    body {
+      font-family: 'Arial', sans-serif; background-color: var(--bg-color); color: var(--accent-color);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; margin: 0; padding: 10px; box-sizing: border-box;
+      user-select: none; -webkit-user-drag: none; touch-action: none;
+    }
 
-self.addEventListener('fetch', (event) => {
-  if (!event.request.url.startsWith('http')) return;
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, response.clone());
-          return response;
+    h1 { color: var(--text-color); margin-bottom: 15px; font-size: 1.8em; text-align: center; }
+
+    .game-info { display: flex; justify-content: center; gap: 15px; width: 100%; max-width: 500px; margin-bottom: 20px; }
+    
+    .player-card {
+      flex: 1; background: rgba(22, 33, 62, 0.6); border-radius: 12px; padding: 10px;
+      display: flex; flex-direction: column; align-items: center; position: relative;
+      border: 2px solid transparent; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      /* Garante que o card tenha tamanho mínimo para acomodar texto */
+      min-width: 130px; 
+    }
+    .player-card.p1 { border-color: var(--player1-color); color: var(--player1-color); }
+    .player-card.p2 { border-color: var(--player2-color); color: var(--player2-color); }
+    .player-card.active { background: rgba(255, 255, 255, 0.05); transform: translateY(-3px); }
+    .player-card.p1.active { box-shadow: 0 0 15px rgba(83, 168, 182, 0.4); }
+    .player-card.p2.active { box-shadow: 0 0 15px rgba(233, 69, 96, 0.4); }
+
+    .player-header { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; width: 100%; }
+    .player-avatar { font-size: 1.5em; flex-shrink: 0; /* Impede que o emoji encolha */ }
+    
+    /* --- CORREÇÃO AQUI --- */
+    .player-name { 
+      font-size: 0.95em; 
+      font-weight: bold; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      /* Configurações para mostrar nome inteiro */
+      white-space: normal; /* Permite quebrar linha se necessário */
+      line-height: 1.1;    /* Linhas mais próximas */
+      max-width: 100%;     /* Usa todo o espaço disponível no card */
+      word-wrap: break-word; 
+      text-align: left;
+    }
+    /* --------------------- */
+
+    .stats-container { display: flex; gap: 12px; background: rgba(0,0,0,0.2); padding: 6px 12px; border-radius: 15px; }
+    .stat-box { display: flex; flex-direction: column; align-items: center; line-height: 1; min-width: 35px; }
+    .stat-value { font-size: 1.3em; font-weight: 800; color: white; margin-bottom: 4px; }
+    .stat-label { font-size: 0.65em; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-label.gold { color: #ffd700; font-weight: bold; opacity: 1; } 
+
+    #turn-info { width: 100%; text-align: center; font-size: 1.1em; margin-bottom: 15px; font-weight: bold; min-height: 1.5em; color: #ccc; }
+    
+    .game-board {
+      display: grid; grid-template-columns: repeat(6, var(--card-size));
+      grid-template-rows: repeat(6, var(--card-size)); gap: var(--board-gap); perspective: 1000px;
+    }
+    .card { width: var(--card-size); height: var(--card-size); position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
+    .card::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+    .card.flipped, .card.matched { transform: rotateY(180deg); cursor: default; }
+    .card-face {
+      position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: calc(var(--card-size) * 0.6); user-select: none;
+    }
+    .card-front { background-color: var(--card-flipped-color); transform: rotateY(180deg); }
+    .card-back { background-color: var(--card-color); border: 2px solid var(--text-color); }
+    
+    @keyframes matchAnimation {
+      0%, 100% { transform: scale(1) rotateY(180deg); box-shadow: none; }
+      50% { transform: scale(1.15) rotateY(180deg); box-shadow: 0 0 15px yellow; }
+    }
+    .card.play-match-animation { animation: matchAnimation 0.7s ease-in-out; }
+
+    #play-again-btn, #reset-button {
+      margin-top: 15px; padding: 12px 25px; font-size: 1em; font-weight: bold;
+      border: none; border-radius: 8px; cursor: pointer; color: var(--accent-color); width: 80%; max-width: 300px;
+    }
+    #play-again-btn { background-color: var(--player1-color); display: none; box-shadow: 0 4px 10px rgba(83,168,182,0.3); }
+    #reset-button { background-color: var(--text-color); }
+    #game-id-display { font-size: 0.8em; color: var(--accent-color); margin-top: 15px; opacity: 0.5; }
+
+    /* Chat Container */
+    .chat-container { width: 100%; max-width: 400px; margin-top: 20px; background-color: var(--card-color); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .chat-messages { height: 150px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .chat-msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 0.9em; word-wrap: break-word; line-height: 1.3; }
+    .chat-msg strong { display: block; margin-bottom: 3px; font-size: 0.85em; font-weight: bold; }
+    .chat-msg.opponent { background-color: #2a2a40; align-self: flex-start; border-top-left-radius: 0; }
+    .chat-msg.opponent strong { color: var(--player2-color); }
+    .chat-msg.self { background-color: var(--card-flipped-color); align-self: flex-end; border-top-right-radius: 0; }
+    .chat-msg.self strong { color: var(--player1-color); }
+    .chat-form { display: flex; padding: 8px; background-color: var(--bg-color); border-top: 1px solid var(--card-color); }
+    .chat-form input { flex-grow: 1; border: none; padding: 10px; border-radius: 6px 0 0 6px; background-color: var(--card-color); color: white; }
+    .chat-form button { border: none; padding: 10px 15px; background-color: var(--text-color); color: white; border-radius: 0 6px 6px 0; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Jogo da Memória</h1>
+
+  <div class="game-info">
+    <div id="player1-card" class="player-card p1">
+      <div class="player-header">
+        <div class="player-avatar">🦊</div>
+        <div class="player-name" id="p1-name">P1</div>
+      </div>
+      <div class="stats-container">
+        <div class="stat-box">
+          <span class="stat-value" id="p1-score">0</span>
+          <span class="stat-label">Pares</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value" id="p1-wins">0</span>
+          <span class="stat-label gold">Vitórias</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="player2-card" class="player-card p2">
+      <div class="player-header">
+        <div class="player-avatar" id="p2-avatar">🐼</div>
+        <div class="player-name" id="p2-name">P2</div>
+      </div>
+      <div class="stats-container">
+        <div class="stat-box">
+          <span class="stat-value" id="p2-score">0</span>
+          <span class="stat-label">Pares</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value" id="p2-wins">0</span>
+          <span class="stat-label gold">Vitórias</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="turn-info">Carregando...</div>
+  <div class="game-board" id="game-board"></div>
+
+  <button id="play-again-btn">Jogar Novamente</button>
+  <button id="reset-button">Voltar ao Lobby</button>
+  
+  <div class="chat-container" id="main-chat">
+    <div class="chat-messages" id="chat-messages"></div>
+    <form class="chat-form" id="chat-form">
+      <input type="text" id="chat-input" placeholder="Mensagem..." autocomplete="off" required>
+      <button type="submit">Enviar</button>
+    </form>
+  </div>
+  <div id="game-id-display"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+  <script>
+    const sfx = {
+      ctx: null,
+      init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+      playTone: function(freq, type, duration, vol = 0.1) {
+        if (!this.ctx) this.init(); if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + duration);
+      },
+      flip: function() { this.playTone(400, 'sine', 0.1, 0.1); },
+      match: function() { this.playTone(600, 'sine', 0.1, 0.1); setTimeout(() => this.playTone(800, 'sine', 0.2, 0.1), 100); },
+      win: function() { [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => this.playTone(f, 'square', 0.3, 0.1), i * 150)); }
+    };
+
+    document.addEventListener('mousedown', e => { if (e.target.closest('.card')) e.preventDefault(); sfx.init(); });
+    document.addEventListener('touchstart', () => sfx.init(), {once:true});
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
+      authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
+      databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com",
+      projectId: "jogo-da-memoria-lilica",
+      storageBucket: "jogo-da-memoria-lilica.firebasestorage.app",
+      messagingSenderId: "683788488529",
+      appId: "1:683788488529:web:727316a3e182257a2d8d70"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const realDB = firebase.database();
+
+    class LocalGameAdapter {
+        constructor(initialState) { this.state = initialState; this.listeners = []; }
+        on(eventType, callback) { this.listeners.push(callback); callback({ val: () => this.state }); }
+        off() { this.listeners = []; }
+        transaction(updateFn) { const result = updateFn(this.state); if (result) { this.state = result; this.notify(); } }
+        remove() { return Promise.resolve(); }
+        notify() { this.listeners.forEach(cb => cb({ val: () => this.state })); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const emojis = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦'];
+      const EMOJI_COUNT = emojis.length; 
+      const WINNING_SCORE = Math.floor(EMOJI_COUNT / 2) + 1; 
+
+      const gameBoard = document.getElementById('game-board');
+      const turnInfoEl = document.getElementById('turn-info');
+      const resetButton = document.getElementById('reset-button');
+      const playAgainBtn = document.getElementById('play-again-btn');
+      const gameIdDisplay = document.getElementById('game-id-display');
+
+      let gameAdapter, playerId, playerNames = {1: "P1", 2: "P2"};
+      let lastMatchedCount = 0, gameWasWon = false, isCpuMode = false;
+      let cpuMemory = {}, checkMatchTimeout = null;
+
+      async function initGame() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        const gameIdParam = urlParams.get('game');
+        const myPlayerName = sessionStorage.getItem('jogoMemoriaPlayerName') || 'Jogador 1';
+
+        if (mode === 'cpu') {
+            isCpuMode = true; playerId = 1;
+            document.getElementById('main-chat').style.display = 'none';
+            document.getElementById('p2-avatar').textContent = '🤖';
+            const pairs = [...emojis, ...emojis].sort(() => 0.5 - Math.random());
+            const board = {}; pairs.forEach((e, i) => board[i] = { id: i, emoji: e, isFlipped: false, isMatched: false });
+            const initialState = { player1_name: myPlayerName, player2_name: 'Robô CPU', player2_uuid: 'cpu', currentPlayer: 1, winner: null, victories: {1:0, 2:0}, board: board, scores: {1:0, 2:0}, flippedCards: [], matchedPairs: 0 };
+            gameAdapter = new LocalGameAdapter(initialState); setupGameListeners();
+        } else if (gameIdParam) {
+            const myUUID = sessionStorage.getItem('jogoMemoriaUUID');
+            if (!myUUID) { window.location.href = 'index.html'; return; }
+            const ref = realDB.ref('games/' + gameIdParam);
+            const snap = await ref.once('value');
+            if (!snap.val()) { alert("Sala inválida."); window.location.href='index.html'; return; }
+            ref.transaction(cs => {
+                if (!cs) return cs;
+                if (cs.player1_uuid === myUUID) playerId = 1;
+                else if (cs.player2_uuid === myUUID) playerId = 2;
+                else if (!cs.player2_uuid) { playerId = 2; cs.player2_uuid = myUUID; cs.player2_name = myPlayerName; }
+                return cs;
+            }, (err, committed, s2) => {
+                if (err || !committed && s2.val().player2_uuid !== myUUID && s2.val().player1_uuid !== myUUID) { alert("Sala cheia!"); window.location.href='index.html'; }
+                else { gameAdapter = ref; setupGameListeners(); }
+            });
+        } else { window.location.href = 'index.html'; }
+      }
+
+      function setupGameListeners() {
+        if (!isCpuMode) {
+             const urlParams = new URLSearchParams(window.location.search);
+             gameIdDisplay.textContent = `ID: ${urlParams.get('game')}`;
+             setupChatListeners(urlParams.get('game'));
+        } else { gameIdDisplay.textContent = "Modo: Contra CPU"; }
+
+        gameAdapter.on('value', snap => {
+          const s = snap.val();
+          if (!s) { if(!isCpuMode) alert("Sala fechada."); window.location.href='index.html'; return; }
+
+          playerNames[1] = s.player1_name || "P1";
+          playerNames[2] = s.player2_name || "P2";
+          
+          updateScoreboard(s.scores, s.victories, s.currentPlayer);
+          
+          if (s.matchedPairs > lastMatchedCount) { sfx.match(); lastMatchedCount = s.matchedPairs; }
+          const hasWinner = (s.winner !== null && s.winner !== undefined);
+          if (hasWinner && !gameWasWon) { gameWasWon = true; sfx.win(); triggerWinConfetti(); }
+          else if (!hasWinner) { gameWasWon = false; if (s.matchedPairs === 0) lastMatchedCount = 0; }
+
+          updateTurnInfo(s.currentPlayer, s.winner, s.player2_uuid);
+          renderBoard(s.board || {}, s.winner);
+
+          if (s.flippedCards?.length === 2) { if (!checkMatchTimeout) { checkMatchTimeout = setTimeout(() => { checkForMatch(); checkMatchTimeout = null; }, 900); } }
+          if (isCpuMode && s.flippedCards && s.flippedCards.length > 0) s.flippedCards.forEach(id => { if(s.board[id]) cpuMemory[id] = s.board[id].emoji; });
+          if (isCpuMode && s.currentPlayer === 2 && !hasWinner && s.flippedCards?.length === 0) setTimeout(cpuTurn, 1200);
+        });
+      }
+
+      function cpuTurn() {
+          if (!gameAdapter.state) return;
+          const board = gameAdapter.state.board;
+          const availableIds = Object.values(board).filter(c => !c.isMatched && !c.isFlipped).map(c => c.id);
+          if (availableIds.length === 0) return;
+
+          let firstChoice = null, secondChoice = null;
+          const memoryIds = Object.keys(cpuMemory).filter(id => !board[id].isMatched);
+          let foundPair = null;
+          
+          for (let i = 0; i < memoryIds.length; i++) {
+              for (let j = i + 1; j < memoryIds.length; j++) {
+                  if (cpuMemory[memoryIds[i]] === cpuMemory[memoryIds[j]]) { foundPair = [parseInt(memoryIds[i]), parseInt(memoryIds[j])]; break; }
+              }
+              if (foundPair) break;
+          }
+
+          if (foundPair) { firstChoice = foundPair[0]; secondChoice = foundPair[1]; if (Math.random() > 0.9) { firstChoice = null; secondChoice = null; } }
+          if (firstChoice === null) firstChoice = availableIds[Math.floor(Math.random() * availableIds.length)];
+
+          performCpuClick(firstChoice);
+
+          setTimeout(() => {
+             if (!secondChoice) {
+                 const firstCardEmoji = board[firstChoice].emoji;
+                 const matchInMemory = Object.keys(cpuMemory).find(id => parseInt(id) !== firstChoice && cpuMemory[id] === firstCardEmoji && !board[id].isMatched);
+                 if (matchInMemory) secondChoice = parseInt(matchInMemory);
+                 else {
+                     const remaining = availableIds.filter(id => id !== firstChoice);
+                     if (remaining.length > 0) secondChoice = remaining[Math.floor(Math.random() * remaining.length)];
+                 }
+             }
+             if (secondChoice !== null) performCpuClick(secondChoice);
+          }, 800);
+      }
+
+      function performCpuClick(cardId) { onCardClick({id: cardId}); }
+
+      function updateScoreboard(scores, victories, currentPlayer) {
+        if (!scores) scores = {1: 0, 2: 0}; if (!victories) victories = {1: 0, 2: 0};
+        document.getElementById('p1-name').textContent = playerNames[1] || "P1";
+        document.getElementById('p1-score').textContent = scores[1];
+        document.getElementById('p1-wins').textContent = victories[1];
+        document.getElementById('p2-name').textContent = playerNames[2] || "P2";
+        document.getElementById('p2-score').textContent = scores[2];
+        document.getElementById('p2-wins').textContent = victories[2];
+        const c1 = document.getElementById('player1-card'); const c2 = document.getElementById('player2-card');
+        c1.classList.remove('active'); c2.classList.remove('active');
+        if (currentPlayer === 1) c1.classList.add('active'); if (currentPlayer === 2) c2.classList.add('active');
+      }
+
+      function triggerWinConfetti() {
+        if (typeof confetti === 'function') {
+            const duration = 3000; const end = Date.now() + duration;
+            (function frame() { confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } }); confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } }); if (Date.now() < end) requestAnimationFrame(frame); }());
+        }
+      }
+
+      function renderBoard(boardState, winner) {
+        gameBoard.innerHTML = '';
+        Object.values(boardState).forEach(c => gameBoard.appendChild(createCardElement(c)));
+        const hasWinner = (winner !== null && winner !== undefined);
+        playAgainBtn.style.display = hasWinner ? 'block' : 'none';
+      }
+
+      function createCardElement(cd) {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.id = cd.id;
+        card.classList.toggle('flipped', cd.isFlipped);
+        card.classList.toggle('matched', cd.isMatched);
+        card.innerHTML = `<div class="card-face card-front">${cd.emoji}</div><div class="card-face card-back"></div>`;
+        if (!cd.isMatched) {
+            card.addEventListener('click', () => { 
+                if (isCpuMode && gameAdapter.state.currentPlayer === 2) return;
+                sfx.flip(); onCardClick(cd); 
+            });
+        }
+        return card;
+      }
+
+      function onCardClick(cd) {
+        if (checkMatchTimeout !== null) return; 
+        gameAdapter.transaction(s => {
+          if (!s || (s.winner !== null && s.winner !== undefined)) return;
+          const flipped = s.flippedCards || [];
+          if (flipped.length >= 2 || s.board[cd.id].isMatched || s.board[cd.id].isFlipped) return;
+          s.board[cd.id].isFlipped = true; s.flippedCards = [...flipped, cd.id];
+          return s;
+        });
+      }
+
+      function checkForMatch() {
+        gameAdapter.transaction(s => {
+          if (!s || !s.flippedCards || s.flippedCards.length !== 2) return;
+          const [a,b] = s.flippedCards; const c1 = s.board[a], c2 = s.board[b];
+          if (!c1 || !c2) { s.flippedCards = []; return s; }
+
+          if (c1.emoji === c2.emoji) {
+            s.scores[s.currentPlayer]++; s.board[a].isMatched = s.board[b].isMatched = true; s.matchedPairs++;
+          } else {
+            s.board[a].isFlipped = s.board[b].isFlipped = false; s.currentPlayer = s.currentPlayer === 1 ? 2 : 1;
+          }
+          s.flippedCards = []; 
+          const p1 = s.scores[1]; const p2 = s.scores[2];
+          if (p1 >= WINNING_SCORE || p2 >= WINNING_SCORE || s.matchedPairs === EMOJI_COUNT) {
+             if (s.winner === null || s.winner === undefined) {
+                if (p1 > p2) s.winner = 1; else if (p2 > p1) s.winner = 2; else s.winner = 0; 
+                if (s.winner !== 0) s.victories[s.winner]++;
+             }
+          }
+          return s; 
+        });
+      }
+
+      function updateTurnInfo(cp, w, p2uuid){
+        const hasWinner = (w !== null && w !== undefined);
+        if (hasWinner) {
+          const wn = w===1?playerNames[1]:(w===2?playerNames[2]:'Empate');
+          turnInfoEl.textContent = `Fim! ${wn==='Empate'?wn:wn+' venceu!'}`; turnInfoEl.style.color = "#ffd700";
+        } else {
+          turnInfoEl.style.color = "#ccc";
+          if (!isCpuMode && !p2uuid) { turnInfoEl.textContent="Aguardando Oponente..."; return; }
+          if (isCpuMode) turnInfoEl.textContent = cp===1 ? "Sua vez!" : "Vez do Robô...";
+          else turnInfoEl.textContent = playerId===cp?`Sua vez!`:`Vez de ${playerNames[cp]}`;
+        }
+      }
+
+      function setupChatListeners(gId) {
+        const cm = document.getElementById('chat-messages');
+        const cf = document.getElementById('chat-form');
+        const ci = document.getElementById('chat-input');
+        const cr = realDB.ref('games/' + gId + '/chat');
+        cf.addEventListener('submit', e => {
+          e.preventDefault(); const txt = ci.value.trim(); if(!txt)return;
+          cr.push({ timestamp: firebase.database.ServerValue.TIMESTAMP, playerId, name: playerNames[playerId], message: txt });
+          ci.value = '';
+        });
+        cr.limitToLast(30).on('child_added', sn => {
+          const m = sn.val(); const d = document.createElement('div'); d.classList.add('chat-msg', m.playerId===playerId?'self':'opponent');
+          d.innerHTML = `<strong style="color:var(--player${m.playerId}-color)">${m.playerId===playerId?'Você':(m.name||'Op')}</strong> ${m.message.replace(/</g,"&lt;")}`;
+          cm.appendChild(d); cm.scrollTop = cm.scrollHeight;
+        });
+      }
+
+      playAgainBtn.addEventListener('click', () => {
+        if (checkMatchTimeout) { clearTimeout(checkMatchTimeout); checkMatchTimeout = null; }
+        if(isCpuMode) cpuMemory = {};
+        gameAdapter.transaction(s=>{
+          if (!s) return s; s.chat = null; const lw = s.winner;
+          const pairs = [...emojis,...emojis].sort(()=>0.5-Math.random());
+          s.board = {}; pairs.forEach((e,i)=>s.board[i]={id:i,emoji:e,isFlipped:false,isMatched:false});
+          s.scores={1:0,2:0}; s.flippedCards=[]; s.matchedPairs=0; s.winner=null;
+          s.currentPlayer = (lw===1||lw===2) ? (lw===1?2:1) : 1; 
+          return s;
         });
       });
-    }).catch(() => caches.match('index.html'))
-  );
-});
 
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-});
+      resetButton.addEventListener('click',()=> { if(confirm('Sair?')) window.location.href='index.html'; });
+      initGame();
+    });
+  </script>
+</body>
+</html>
