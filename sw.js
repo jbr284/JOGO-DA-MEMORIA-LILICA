@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v13 (Fix Turn Security)
+// SERVICE WORKER - VERSÃO v14 (Tabuleiro 8x8)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v13'; // <-- ATUALIZADO PARA v13
+const CACHE_NAME = 'jogos-online-cache-v14'; 
 const FILES_TO_CACHE = [
   'index.html',
   'game.html',
