@@ -14,19 +14,21 @@
       --bg-color: #1a1a2e; --card-color: #16213e; --card-flipped-color: #0f3460;
       --text-color: #e94560; --accent-color: #ffffff;
       --player1-color: #53a8b6; --player2-color: #e94560;
-      --card-size: 60px; --board-gap: 8px;
+      --board-gap: 5px;
+      /* CSS Mágico para 8x8 caber no celular: Ele tenta usar 50px, mas se a tela for menor, ele divide o espaço por 8 */
+      --card-size: min(50px, calc((100vw - 20px - (7 * var(--board-gap))) / 8)); 
     }
 
     body {
       font-family: 'Arial', sans-serif; background-color: var(--bg-color); color: var(--accent-color);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
       min-height: 100vh; margin: 0; padding: 10px; box-sizing: border-box;
-      user-select: none; -webkit-user-drag: none; touch-action: none;
+      user-select: none; -webkit-user-drag: none; touch-action: none; overflow-x: hidden;
     }
 
-    h1 { color: var(--text-color); margin-bottom: 15px; font-size: 1.8em; text-align: center; }
+    h1 { color: var(--text-color); margin-bottom: 10px; margin-top: 10px; font-size: 1.5em; text-align: center; }
 
-    .game-info { display: flex; justify-content: center; gap: 15px; width: 100%; max-width: 500px; margin-bottom: 20px; }
+    .game-info { display: flex; justify-content: center; gap: 10px; width: 100%; max-width: 500px; margin-bottom: 15px; }
     
     .player-card {
       flex: 1; background: rgba(22, 33, 62, 0.6); border-radius: 12px; padding: 10px;
@@ -43,7 +45,6 @@
     .player-header { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; width: 100%; }
     .player-avatar { font-size: 1.5em; flex-shrink: 0; }
     
-    /* CSS CORRIGIDO PARA NOME NÃO CORTAR */
     .player-name { 
       font-size: 0.95em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; 
       white-space: normal; line-height: 1.1; max-width: 100%; word-wrap: break-word; text-align: left;
@@ -55,18 +56,23 @@
     .stat-label { font-size: 0.65em; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; }
     .stat-label.gold { color: #ffd700; font-weight: bold; opacity: 1; } 
 
-    #turn-info { width: 100%; text-align: center; font-size: 1.1em; margin-bottom: 15px; font-weight: bold; min-height: 1.5em; color: #ccc; }
+    #turn-info { width: 100%; text-align: center; font-size: 1em; margin-bottom: 15px; font-weight: bold; min-height: 1.5em; color: #ccc; }
     
+    /* GRELHA 8x8 APLICADA AQUI */
     .game-board {
-      display: grid; grid-template-columns: repeat(6, var(--card-size));
-      grid-template-rows: repeat(6, var(--card-size)); gap: var(--board-gap); perspective: 1000px;
+      display: grid; 
+      grid-template-columns: repeat(8, var(--card-size));
+      grid-template-rows: repeat(8, var(--card-size)); 
+      gap: var(--board-gap); 
+      perspective: 1000px;
     }
-    .card { width: var(--card-size); height: var(--card-size); position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
+
+    .card { width: var(--card-size); height: var(--card-size); position: relative; transform-style: preserve-3d; transition: transform 0.5s; cursor: pointer; }
     .card::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
     .card.flipped, .card.matched { transform: rotateY(180deg); cursor: default; }
     .card-face {
       position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      border-radius: 6px; display: flex; align-items: center; justify-content: center;
       font-size: calc(var(--card-size) * 0.6); user-select: none;
     }
     .card-front { background-color: var(--card-flipped-color); transform: rotateY(180deg); }
@@ -83,13 +89,13 @@
       border: none; border-radius: 8px; cursor: pointer; color: var(--accent-color); width: 80%; max-width: 300px;
     }
     #play-again-btn { background-color: var(--player1-color); display: none; box-shadow: 0 4px 10px rgba(83,168,182,0.3); }
-    #reset-button { background-color: var(--text-color); }
-    #game-id-display { font-size: 0.8em; color: var(--accent-color); margin-top: 15px; opacity: 0.5; }
+    #reset-button { background-color: var(--text-color); margin-bottom: 15px; }
+    #game-id-display { font-size: 0.8em; color: var(--accent-color); margin-top: 10px; opacity: 0.5; }
 
     /* Chat Container */
-    .chat-container { width: 100%; max-width: 400px; margin-top: 20px; background-color: var(--card-color); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-    .chat-messages { height: 150px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-    .chat-msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 0.9em; word-wrap: break-word; line-height: 1.3; }
+    .chat-container { width: 100%; max-width: 400px; margin-top: 10px; background-color: var(--card-color); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .chat-messages { height: 120px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .chat-msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 0.85em; word-wrap: break-word; line-height: 1.3; }
     .chat-msg strong { display: block; margin-bottom: 3px; font-size: 0.85em; font-weight: bold; }
     .chat-msg.opponent { background-color: #2a2a40; align-self: flex-start; border-top-left-radius: 0; }
     .chat-msg.opponent strong { color: var(--player2-color); }
@@ -190,9 +196,15 @@
     const database = firebase.database();
 
     document.addEventListener('DOMContentLoaded', () => {
-      const emojis = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦'];
+      // --- OS 32 EMOJIS ATUALIZADOS PARA O TABULEIRO 8x8 ---
+      const emojis = [
+        '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼',
+        '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔',
+        '🐧', '🐦', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛',
+        '🦋', '🐌', '🐞', '🐢', '🐍', '🐙', '🐠', '🐬'
+      ];
       const EMOJI_COUNT = emojis.length; 
-      const WINNING_SCORE = Math.floor(EMOJI_COUNT / 2) + 1; 
+      const WINNING_SCORE = Math.floor(EMOJI_COUNT / 2) + 1; // Para 32 pares, precisa de 17 para ganhar
 
       const gameBoard = document.getElementById('game-board');
       const turnInfoEl = document.getElementById('turn-info');
@@ -305,11 +317,8 @@
       function onCardClick(cd) {
         if (checkMatchTimeout !== null) return; 
         
-        // AQUI ESTÁ A CORREÇÃO DO BUG DE CLIQUES SIMULTÂNEOS
         gameStateRef.transaction(s => {
           if (!s || (s.winner !== null && s.winner !== undefined)) return;
-          
-          // TRAVA DE SEGURANÇA: Se não for meu turno, rejeita a ação no banco.
           if (s.currentPlayer !== playerId) return;
 
           const flipped = s.flippedCards || [];
