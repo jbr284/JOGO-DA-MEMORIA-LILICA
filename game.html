@@ -14,9 +14,9 @@
       --bg-color: #1a1a2e; --card-color: #16213e; --card-flipped-color: #0f3460;
       --text-color: #e94560; --accent-color: #ffffff;
       --player1-color: #53a8b6; --player2-color: #e94560;
-      --board-gap: 5px;
-      /* CSS Mágico para 8x8 caber no celular: Ele tenta usar 50px, mas se a tela for menor, ele divide o espaço por 8 */
-      --card-size: min(50px, calc((100vw - 20px - (7 * var(--board-gap))) / 8)); 
+      --board-gap: 6px;
+      /* O SEGREDO CORRIGIDO: Cresce até 80px no PC, não ultrapassa 9% da altura da tela, e encolhe no celular! */
+      --card-size: min(80px, 9vh, calc((100vw - 30px - (7 * var(--board-gap))) / 8)); 
     }
 
     body {
@@ -58,7 +58,6 @@
 
     #turn-info { width: 100%; text-align: center; font-size: 1em; margin-bottom: 15px; font-weight: bold; min-height: 1.5em; color: #ccc; }
     
-    /* GRELHA 8x8 APLICADA AQUI */
     .game-board {
       display: grid; 
       grid-template-columns: repeat(8, var(--card-size));
@@ -196,7 +195,6 @@
     const database = firebase.database();
 
     document.addEventListener('DOMContentLoaded', () => {
-      // --- OS 32 EMOJIS ATUALIZADOS PARA O TABULEIRO 8x8 ---
       const emojis = [
         '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼',
         '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔',
@@ -204,7 +202,7 @@
         '🦋', '🐌', '🐞', '🐢', '🐍', '🐙', '🐠', '🐬'
       ];
       const EMOJI_COUNT = emojis.length; 
-      const WINNING_SCORE = Math.floor(EMOJI_COUNT / 2) + 1; // Para 32 pares, precisa de 17 para ganhar
+      const WINNING_SCORE = Math.floor(EMOJI_COUNT / 2) + 1; 
 
       const gameBoard = document.getElementById('game-board');
       const turnInfoEl = document.getElementById('turn-info');
