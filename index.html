@@ -8,71 +8,91 @@
     <link rel="icon" href="icons/icon-192.png" type="image/png">
     <meta name="theme-color" content="#16213e">
     
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root {
-            --bg-color: #1a1a2e; --card-color: #16213e; --text-color: #e94560; --accent-color: #ffffff;
-            --player1-color: #53a8b6; --player2-color: #e94560;
+            --bg-dark: #0f0f1a; --bg-light: #1a1a2e; --card-color: rgba(22, 33, 62, 0.6); 
+            --text-color: #e94560; --accent-color: #ffffff;
+            --player1-color: #00f0ff; --player2-color: #ff0055;
         }
         body {
-            font-family: 'Arial', sans-serif; background-color: var(--bg-color); color: var(--accent-color);
+            font-family: 'Poppins', sans-serif; color: var(--accent-color);
+            background: radial-gradient(circle at center, var(--bg-light) 0%, var(--bg-dark) 100%);
             display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px;
         }
+        
+        /* GLASSMORPHISM */
         .lobby-container {
-            background-color: var(--card-color); padding: 30px 40px; border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4); text-align: center; width: 90%; max-width: 450px;
+            background-color: var(--card-color); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px 40px; border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5); text-align: center; width: 100%; max-width: 450px;
         }
-        h1 { color: var(--text-color); margin-top: 0; margin-bottom: 25px; }
+        
+        h1 { color: var(--accent-color); margin-top: 0; margin-bottom: 25px; font-weight: 800; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
         .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9em; letter-spacing: 1px; text-transform: uppercase; color: #a1a1b5; }
         .form-group input[type="text"] {
-            width: 100%; padding: 12px; font-size: 1.1em; text-align: center;
-            background-color: var(--bg-color); border: 2px solid var(--text-color);
-            color: var(--accent-color); border-radius: 8px; box-sizing: border-box;
+            width: 100%; padding: 14px; font-size: 1.1em; text-align: center; font-family: 'Poppins', sans-serif;
+            background-color: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.1);
+            color: var(--accent-color); border-radius: 10px; box-sizing: border-box; transition: 0.3s;
         }
-        .form-group input#game-id-input { text-transform: lowercase; }
+        .form-group input[type="text"]:focus { outline: none; border-color: var(--player1-color); box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); }
+        .form-group input#game-id-input { text-transform: lowercase; letter-spacing: 2px; font-weight: 600; }
+        
         button {
-            width: 100%; padding: 15px; font-size: 1.2em; font-weight: bold;
-            color: var(--accent-color); background-color: var(--text-color);
-            border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-top: 5px;
+            width: 100%; padding: 15px; font-size: 1.1em; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--accent-color); background: linear-gradient(135deg, var(--player2-color), #c93048);
+            border: none; border-radius: 10px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 5px;
+            font-family: 'Poppins', sans-serif;
         }
-        button:hover { background-color: #c93048; }
-        button:disabled { background-color: #555; cursor: not-allowed; }
-        .separator { margin: 25px 0; font-weight: bold; color: var(--accent-color); opacity: 0.6; }
-        .chat-container { margin-top: 25px; border: 2px solid var(--text-color); border-radius: 8px; overflow: hidden; text-align: left; }
-        .chat-messages { height: 200px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; background-color: var(--bg-color); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(233, 69, 96, 0.4); }
+        button#create-game-btn { background: linear-gradient(135deg, #00f0ff, #0088ff); color: #000; }
+        button#create-game-btn:hover { box-shadow: 0 8px 20px rgba(0, 240, 255, 0.4); }
+        button:disabled { background: #555; cursor: not-allowed; transform: none; box-shadow: none; color: #aaa; }
+        
+        .separator { margin: 25px 0; font-weight: 800; color: rgba(255,255,255,0.3); font-size: 0.9em; position: relative; }
+        .separator::before, .separator::after { content: ""; position: absolute; top: 50%; width: 40%; height: 1px; background: rgba(255,255,255,0.1); }
+        .separator::before { left: 0; } .separator::after { right: 0; }
+         
+        .chat-container { margin-top: 25px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; text-align: left; background: rgba(0,0,0,0.2); }
+        .chat-messages { height: 180px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
         .chat-messages::-webkit-scrollbar { width: 6px; }
-        .chat-messages::-webkit-scrollbar-thumb { background-color: var(--text-color); border-radius: 3px; }
-        .chat-msg { max-width: 90%; padding: 8px 12px; border-radius: 12px; font-size: 0.9em; word-wrap: break-word; line-height: 1.4; background-color: #2a2a40; align-self: flex-start; }
-        .chat-msg strong { display: block; margin-bottom: 3px; font-size: 0.9em; font-weight: bold; color: var(--player2-color); }
-        .chat-msg.self { background-color: #0f3460; align-self: flex-end; border-top-right-radius: 0; }
+        .chat-messages::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); border-radius: 3px; }
+        
+        .chat-msg { max-width: 90%; padding: 10px 14px; border-radius: 12px; font-size: 0.85em; line-height: 1.4; background-color: rgba(255,255,255,0.05); align-self: flex-start; }
+        .chat-msg strong { display: block; margin-bottom: 4px; font-size: 0.9em; color: var(--player2-color); }
+        .chat-msg.self { background-color: rgba(0, 240, 255, 0.1); align-self: flex-end; border-top-right-radius: 0; }
         .chat-msg.self strong { color: var(--player1-color); }
-        .chat-form { display: flex; }
-        .chat-form input { flex-grow: 1; border: none; padding: 12px; font-size: 0.9em; background-color: var(--bg-color); color: var(--accent-color); border-top: 2px solid var(--text-color); }
-        .chat-form button { padding: 12px 15px; font-size: 0.9em; border-radius: 0; margin: 0; width: auto; border-top: 2px solid var(--text-color); }
-        @media (max-width: 480px) { .lobby-container { padding: 20px; } h1 { font-size: 1.8em; } }
+        
+        .chat-form { display: flex; border-top: 1px solid rgba(255,255,255,0.1); }
+        .chat-form input { flex-grow: 1; border: none; padding: 12px; font-size: 0.9em; background: transparent; color: var(--accent-color); font-family: 'Poppins', sans-serif; }
+        .chat-form input:focus { outline: none; }
+        .chat-form button { padding: 12px 20px; font-size: 0.9em; border-radius: 0; margin: 0; width: auto; background: transparent; color: var(--player1-color); box-shadow: none; border-left: 1px solid rgba(255,255,255,0.1); }
+        .chat-form button:hover { transform: none; background: rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
+
     <div class="lobby-container">
-        <h1>Jogo da Memória Online</h1>
+        <h1>Memória Online</h1>
         <div class="form-group">
-            <label for="player-name-input">Seu Nome</label>
-            <input type="text" id="player-name-input" placeholder="Digite seu nome aqui">
+            <label for="player-name-input">Identificação</label>
+            <input type="text" id="player-name-input" placeholder="O seu nome...">
         </div>
         <div class="form-group"><button id="create-game-btn">Criar Nova Sala</button></div>
         <div class="separator">OU</div>
         <div class="form-group">
-            <label for="game-id-input">Digite o ID da Sala</label>
-            <input type="text" id="game-id-input" placeholder="ex: foxyz">
+            <input type="text" id="game-id-input" placeholder="ID da Sala (ex: foxyz)">
         </div>
         <button id="join-game-btn">Entrar na Sala</button>
+        
         <div class="chat-container">
             <div class="chat-messages" id="lobby-chat-messages"></div>
             <form class="chat-form" id="lobby-chat-form">
-                <input type="text" id="lobby-chat-input" placeholder="Digite no lobby global..." autocomplete="off" required>
-                <button type="submit">Enviar</button>
+                <input type="text" id="lobby-chat-input" placeholder="Mensagem global..." autocomplete="off" required>
+                <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
             </form>
         </div>
     </div>
@@ -82,24 +102,14 @@
 
     <script>
         const firebaseConfig = {
-          apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc",
-          authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
-          databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com",
-          projectId: "jogo-da-memoria-lilica",
-          storageBucket: "jogo-da-memoria-lilica.firebasestorage.app",
-          messagingSenderId: "683788488529",
-          appId: "1:683788488529:web:727316a3e182257a2d8d70"
+          apiKey: "AIzaSyCLAsfQdpaEzk_5IFV39F0m_IyaFsGbAbc", authDomain: "jogo-da-memoria-lilica.firebaseapp.com",
+          databaseURL: "https://jogo-da-memoria-lilica-default-rtdb.firebaseio.com", projectId: "jogo-da-memoria-lilica",
+          storageBucket: "jogo-da-memoria-lilica.firebasestorage.app", messagingSenderId: "683788488529", appId: "1:683788488529:web:727316a3e182257a2d8d70"
         };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
         document.addEventListener('DOMContentLoaded', () => {
-            const createBtn = document.getElementById('create-game-btn');
-            const joinBtn = document.getElementById('join-game-btn');
-            const gameIdInput = document.getElementById('game-id-input');
-            const playerNameInput = document.getElementById('player-name-input');
-            
-            // --- LISTA MISTA DE 32 ÍCONES VETORIAIS ---
             const memoryIcons = [
                 '<i class="fa-solid fa-rocket"></i>', '<i class="fa-solid fa-ghost"></i>', '<i class="fa-solid fa-robot"></i>', '<i class="fa-solid fa-bug"></i>',
                 '<i class="fa-solid fa-bolt"></i>', '<i class="fa-solid fa-fire"></i>', '<i class="fa-solid fa-snowflake"></i>', '<i class="fa-solid fa-cloud"></i>',
@@ -113,56 +123,52 @@
             
             let myPlayerUUID = sessionStorage.getItem('jogoMemoriaUUID');
             if (!myPlayerUUID) { myPlayerUUID = Math.random().toString(36).substr(2, 9); sessionStorage.setItem('jogoMemoriaUUID', myPlayerUUID); }
-            playerNameInput.value = sessionStorage.getItem('jogoMemoriaPlayerName') || '';
+            document.getElementById('player-name-input').value = sessionStorage.getItem('jogoMemoriaPlayerName') || '';
 
             function getPlayerName() {
-                const name = playerNameInput.value.trim();
-                if (!name) { alert("Digite seu nome!"); playerNameInput.focus(); return null; }
-                sessionStorage.setItem('jogoMemoriaPlayerName', name); return name;
+                const n = document.getElementById('player-name-input').value.trim();
+                if (!n) { alert("Digite o seu nome!"); return null; }
+                sessionStorage.setItem('jogoMemoriaPlayerName', n); return n;
             }
 
-            createBtn.addEventListener('click', async () => {
-                const playerName = getPlayerName(); if (!playerName) return;
-                createBtn.disabled = true; createBtn.textContent = 'Criando...';
+            document.getElementById('create-game-btn').addEventListener('click', async function() {
+                const name = getPlayerName(); if (!name) return;
+                this.disabled = true; this.textContent = 'Criando...';
                 const gameId = Math.random().toString(36).substr(2, 6);
-                const gameStateRef = database.ref('games/' + gameId);
-                const cardPairs = [...memoryIcons, ...memoryIcons].sort(() => 0.5 - Math.random());
+                const pairs = [...memoryIcons, ...memoryIcons].sort(() => 0.5 - Math.random());
                 const initialBoard = {};
-                cardPairs.forEach((icon, index) => { initialBoard[index] = { id: index, emoji: icon, isFlipped: false, isMatched: false }; });
-
-                try {
-                    await gameStateRef.set({ gameId, gameType: 'memory', player1_uuid: myPlayerUUID, player1_name: playerName, player2_uuid: null, player2_name: null, currentPlayer: 1, winner: null, victories: { 1: 0, 2: 0 }, board: initialBoard, scores: { 1: 0, 2: 0 }, flippedCards: [], matchedPairs: 0 });
-                    await database.ref('lobby/chat').push({ timestamp: firebase.database.ServerValue.TIMESTAMP, uuid: myPlayerUUID, name: playerName, message: `Criei a sala: ${gameId}` });
-                    window.location.href = `game.html?game=${gameId}`;
-                } catch (e) { alert("Erro ao criar sala."); createBtn.disabled = false; }
+                pairs.forEach((e, i) => initialBoard[i] = { id: i, emoji: e, isFlipped: false, isMatched: false, matchedBy: null });
+                
+                await database.ref('games/' + gameId).set({ gameId, gameType: 'memory', player1_uuid: myPlayerUUID, player1_name: name, player2_uuid: null, player2_name: null, currentPlayer: 1, winner: null, victories: { 1: 0, 2: 0 }, board: initialBoard, scores: { 1: 0, 2: 0 }, flippedCards: [], matchedPairs: 0 });
+                await database.ref('lobby/chat').push({ timestamp: firebase.database.ServerValue.TIMESTAMP, uuid: myPlayerUUID, name, message: `Sala Criada: ${gameId}` });
+                window.location.href = `game.html?game=${gameId}`;
             });
 
-            joinBtn.addEventListener('click', () => {
-                const playerName = getPlayerName(); if (!playerName) return;
-                const gameId = gameIdInput.value.toLowerCase().trim();
-                if (!gameId) { alert("ID da sala?"); return; }
-                joinBtn.disabled = true;
+            document.getElementById('join-game-btn').addEventListener('click', function() {
+                const name = getPlayerName(); if (!name) return;
+                const gameId = document.getElementById('game-id-input').value.toLowerCase().trim();
+                if (!gameId) return alert("ID da sala?");
+                this.disabled = true; this.textContent = 'Entrando...';
                 database.ref('games/' + gameId).once('value', snap => {
                     if (snap.exists() && snap.val().gameType === 'memory') {
                         if (!snap.val().player2_uuid || snap.val().player2_uuid === myPlayerUUID) {
-                            if (!snap.val().player2_uuid) database.ref('games/' + gameId).update({ player2_name: playerName });
+                            if (!snap.val().player2_uuid) database.ref('games/' + gameId).update({ player2_name: name });
                             window.location.href = `game.html?game=${gameId}`;
-                        } else { alert("Sala cheia!"); joinBtn.disabled = false; }
-                    } else { alert("Não encontrada!"); joinBtn.disabled = false; }
+                        } else { alert("Sala cheia!"); this.disabled = false; this.textContent = 'Entrar na Sala'; }
+                    } else { alert("Sala não encontrada!"); this.disabled = false; this.textContent = 'Entrar na Sala'; }
                 });
             });
 
-            const lobbyChatRef = database.ref('lobby/chat');
-            document.getElementById('lobby-chat-form').addEventListener('submit', e => {
-                e.preventDefault(); const name = getPlayerName(); if(!name) return;
-                const inp = document.getElementById('lobby-chat-input'); if(!inp.value.trim()) return;
-                lobbyChatRef.push({ timestamp: firebase.database.ServerValue.TIMESTAMP, uuid: myPlayerUUID, name, message: inp.value.trim() });
+            const chatRef = database.ref('lobby/chat');
+            document.getElementById('lobby-chat-form').onsubmit = e => {
+                e.preventDefault(); const name = getPlayerName(); const inp = document.getElementById('lobby-chat-input');
+                if(!name || !inp.value.trim()) return;
+                chatRef.push({ timestamp: firebase.database.ServerValue.TIMESTAMP, uuid: myPlayerUUID, name, message: inp.value.trim() });
                 inp.value = '';
-            });
+            };
 
-            lobbyChatRef.limitToLast(50).on('child_added', snap => {
-                const m = snap.val(); const div = document.createElement('div'); div.classList.add('chat-msg');
-                if (m.uuid === myPlayerUUID) div.classList.add('self');
+            chatRef.limitToLast(50).on('child_added', snap => {
+                const m = snap.val(); const div = document.createElement('div'); div.className = 'chat-msg ' + (m.uuid === myPlayerUUID ? 'self' : '');
                 div.innerHTML = `<strong>${m.name}</strong> ${m.message.replace(/</g, "&lt;")}`;
                 const box = document.getElementById('lobby-chat-messages'); box.appendChild(div); box.scrollTop = box.scrollHeight;
             });
