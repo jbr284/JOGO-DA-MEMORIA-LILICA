@@ -43,7 +43,6 @@
     .card.flipped, .card.matched { transform: rotateY(180deg); }
     .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: calc(var(--card-size) * 0.5); }
     
-    /* VISUAL DOS ÍCONES BRANCOS */
     .card-front { 
         background-color: var(--card-flipped-color); transform: rotateY(180deg); color: white;
         text-shadow: 0 3px 6px rgba(0,0,0,0.5); 
@@ -84,7 +83,6 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     
-    // MESMA LISTA DO LOBBY PARA RESET DE JOGO
     const icons = ['<i class="fa-solid fa-rocket"></i>', '<i class="fa-solid fa-ghost"></i>', '<i class="fa-solid fa-robot"></i>', '<i class="fa-solid fa-bug"></i>', '<i class="fa-solid fa-bolt"></i>', '<i class="fa-solid fa-fire"></i>', '<i class="fa-solid fa-snowflake"></i>', '<i class="fa-solid fa-cloud"></i>', '<i class="fa-solid fa-sun"></i>', '<i class="fa-solid fa-star"></i>', '<i class="fa-solid fa-gem"></i>', '<i class="fa-solid fa-bomb"></i>', '<i class="fa-solid fa-crown"></i>', '<i class="fa-solid fa-gamepad"></i>', '<i class="fa-solid fa-dice"></i>', '<i class="fa-solid fa-chess-knight"></i>', '<i class="fa-solid fa-anchor"></i>', '<i class="fa-solid fa-heart"></i>', '<i class="fa-solid fa-music"></i>', '<i class="fa-solid fa-paper-plane"></i>', '<i class="fa-solid fa-car"></i>', '<i class="fa-solid fa-bicycle"></i>', '<i class="fa-solid fa-umbrella"></i>', '<i class="fa-solid fa-mug-hot"></i>', '<i class="fa-solid fa-pizza-slice"></i>', '<i class="fa-solid fa-apple-whole"></i>', '<i class="fa-solid fa-ice-cream"></i>', '<i class="fa-solid fa-paw"></i>', '<i class="fa-solid fa-skull"></i>', '<i class="fa-solid fa-feather-pointed"></i>', '<i class="fa-solid fa-tree"></i>', '<i class="fa-solid fa-leaf"></i>'];
 
     let gameStateRef, gameId, playerId, checkMatchTimeout = null;
@@ -116,11 +114,17 @@
             document.getElementById('player2-card').classList.toggle('active', s.currentPlayer === 2);
             
             const info = document.getElementById('turn-info');
-            if (s.winner !== null) { 
+            
+            // CORREÇÃO DO BUG: Verificação robusta para evitar o falso "undefined"
+            if (s.winner === 0 || s.winner === 1 || s.winner === 2) { 
                 info.textContent = s.winner === 0 ? "Empate!" : (s.winner === 1 ? s.player1_name : s.player2_name) + " Venceu!"; 
+                info.style.color = "#ffd700";
                 document.getElementById('play-again-btn').style.display = 'block';
             } else {
-                info.textContent = s.currentPlayer === playerId ? "Sua vez!" : "Vez de " + (s.currentPlayer === 1 ? s.player1_name : s.player2_name);
+                info.style.color = "#ccc";
+                const nomeOponente = s.currentPlayer === 1 ? s.player1_name : (s.player2_name || 'Oponente');
+                info.textContent = s.currentPlayer === playerId ? "Sua vez!" : "Vez de " + nomeOponente;
+                document.getElementById('play-again-btn').style.display = 'none';
             }
 
             const board = document.getElementById('game-board'); board.innerHTML = '';
@@ -128,7 +132,13 @@
                 const el = document.createElement('div'); el.className = 'card';
                 if(c.isFlipped) el.classList.add('flipped'); if(c.isMatched) el.classList.add('matched');
                 el.innerHTML = `<div class="card-face card-front">${c.emoji}</div><div class="card-face card-back"></div>`;
-                el.onclick = () => { if (!c.isFlipped && !c.isMatched && s.currentPlayer === playerId && !checkMatchTimeout) flip(c.id); };
+                
+                // Impede clique se a partida acabou (alguém já venceu)
+                el.onclick = () => { 
+                    if (!c.isFlipped && !c.isMatched && s.currentPlayer === playerId && !checkMatchTimeout && (s.winner === undefined || s.winner === null)) {
+                        flip(c.id); 
+                    }
+                };
                 board.appendChild(el);
             });
 
@@ -152,7 +162,7 @@
 
     function flip(cardId) {
         gameStateRef.transaction(s => {
-            if (!s || s.winner !== null || s.currentPlayer !== playerId) return;
+            if (!s || (s.winner === 0 || s.winner === 1 || s.winner === 2) || s.currentPlayer !== playerId) return;
             const flipped = s.flippedCards || []; if (flipped.length >= 2) return;
             s.board[cardId].isFlipped = true; s.flippedCards = [...flipped, cardId];
             return s;
