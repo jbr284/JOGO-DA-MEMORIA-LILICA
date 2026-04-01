@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v14 (Tabuleiro 8x8)
+// SERVICE WORKER - VERSÃO v15 (Cartas Desktop)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v14'; 
+const CACHE_NAME = 'jogos-online-cache-v15'; 
 const FILES_TO_CACHE = [
   'index.html',
   'game.html',
