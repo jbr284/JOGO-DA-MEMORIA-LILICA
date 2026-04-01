@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v16 (Mista Ícones)
+// SERVICE WORKER - VERSÃO v17 (Fix Undefined Winner)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v16'; 
+const CACHE_NAME = 'jogos-online-cache-v17'; 
 const FILES_TO_CACHE = [
   './',
   'index.html',
