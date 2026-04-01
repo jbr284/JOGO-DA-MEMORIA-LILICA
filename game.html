@@ -209,12 +209,10 @@
                     el.style.animationDelay = `${i * 0.015}s`; el.id = `card-${c.id}`; el.dataset.emoji = c.emoji;
                     el.innerHTML = `<div class="card-face card-front">${c.emoji}</div><div class="card-face card-back"></div>`;
                     
-                    // Condição de clique simplificada e blindada
                     el.onclick = () => { if (!el.classList.contains('flipped') && !el.classList.contains('matched') && playerId === window.currentTurn && !checkMatchTimeout && !gameWon) flip(c.id); };
                     
                     boardEl.appendChild(el);
 
-                    // REMOVE A CLASSE DE ANIMAÇÃO APÓS A ENTRADA PARA LIBERAR O CSS DA CARTA
                     setTimeout(() => el.classList.remove('cascade-in'), 1500);
                 });
             }
@@ -281,7 +279,14 @@
             return s;
         });
     };
-    document.getElementById('reset-button').onclick = () => window.location.href = 'index.html';
+    
+    // --- AQUI ESTÁ A TRAVA DE SEGURANÇA ---
+    document.getElementById('reset-button').onclick = () => { 
+        if(confirm('Tem certeza que deseja abandonar a sala? A partida será encerrada para você.')) {
+            window.location.href = 'index.html'; 
+        }
+    };
+    
     init();
   </script>
 </body>
