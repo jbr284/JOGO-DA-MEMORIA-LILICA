@@ -1,53 +1,31 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v15 (Cartas Desktop)
+// SERVICE WORKER - VERSÃO v16 (Mista Ícones)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v15'; 
+const CACHE_NAME = 'jogos-online-cache-v16'; 
 const FILES_TO_CACHE = [
+  './',
   'index.html',
   'game.html',
   'manifest.json',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js',
   'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', (e) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return Promise.all(
-        FILES_TO_CACHE.map((url) => cache.add(new Request(url, { cache: 'reload' })).catch(console.warn))
-      );
-    })
-  );
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(FILES_TO_CACHE)));
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((names) => Promise.all(
-      names.map((name) => {
-        if (name !== CACHE_NAME) return caches.delete(name);
-      })
-    )).then(() => self.clients.claim())
-  );
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))));
+  self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
-  if (!event.request.url.startsWith('http')) return;
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, response.clone());
-          return response;
-        });
-      });
-    }).catch(() => caches.match('index.html'))
-  );
-});
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+self.addEventListener('fetch', (e) => {
+  if (!e.request.url.startsWith('http')) return;
+  e.respondWith(caches.match(e.request).then(res => res || fetch(e.request).then(net => {
+      return caches.open(CACHE_NAME).then(c => { c.put(e.request, net.clone()); return net; });
+  })));
 });
