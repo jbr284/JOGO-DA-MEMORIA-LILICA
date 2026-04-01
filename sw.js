@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v18 (Code Sweep & UI Premium)
+// SERVICE WORKER - VERSÃO v19 (Fix Cascade Bug)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v18'; 
+const CACHE_NAME = 'jogos-online-cache-v19'; 
 const FILES_TO_CACHE = [
   './',
   'index.html',
