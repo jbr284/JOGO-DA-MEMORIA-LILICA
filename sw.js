@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v19 (Fix Cascade Bug)
+// SERVICE WORKER - VERSÃO v20 (Safety Lock no Botão Sair)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v19'; 
+const CACHE_NAME = 'jogos-online-cache-v20'; 
 const FILES_TO_CACHE = [
   './',
   'index.html',
