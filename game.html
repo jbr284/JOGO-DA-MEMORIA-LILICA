@@ -75,9 +75,9 @@
     .game-board { display: grid; grid-template-columns: repeat(8, var(--card-size)); gap: var(--board-gap); perspective: 1000px; }
     .card { width: var(--card-size); height: var(--card-size); position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1); cursor: pointer; }
     
-    /* EFEITO CASCATA NA ENTRADA */
-    @keyframes cascadeIn { from { opacity: 0; transform: translateY(-30px) rotateY(-90deg) scale(0.8); } to { opacity: 1; transform: translateY(0) rotateY(0) scale(1); } }
-    .cascade-in { animation: cascadeIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+    /* EFEITO CASCATA NA ENTRADA - CORRIGIDO PARA NÃO TRAVAR O GIRO */
+    @keyframes cascadeIn { from { opacity: 0; transform: translateY(-30px) rotateY(-90deg) scale(0.8); } to { opacity: 1; transform: none; } }
+    .cascade-in { animation: cascadeIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards; }
     
     /* EFEITO HOVER E PADRÃO DO VERSO */
     .card:not(.flipped):not(.matched):hover { transform: translateY(-4px); }
@@ -148,8 +148,8 @@
     const WINNING_SCORE = 17;
 
     let gameStateRef, gameId, playerId, checkMatchTimeout = null;
-    window.currentTurn = 0; // Guardar localmente para evitar cliques acidentais
-    let cachedScores = {1: -1, 2: -1}; // Memória para animação de pop
+    window.currentTurn = 0; 
+    let cachedScores = {1: -1, 2: -1}; 
 
     async function init() {
         gameId = new URLSearchParams(window.location.search).get('game');
@@ -175,7 +175,6 @@
             const s = snap.val(); if (!s) return;
             window.currentTurn = s.currentPlayer;
 
-            // Placar & Animações Pop
             document.getElementById('p1-name').textContent = s.player1_name || "P1";
             document.getElementById('p2-name').textContent = s.player2_name || "P2";
             
@@ -186,7 +185,6 @@
             document.getElementById('p1-score').textContent = s.scores[1]; document.getElementById('p1-wins').textContent = s.victories[1];
             document.getElementById('p2-score').textContent = s.scores[2]; document.getElementById('p2-wins').textContent = s.victories[2];
             
-            // Barras de Progresso
             document.getElementById('p1-progress').style.width = Math.min((s.scores[1] / WINNING_SCORE) * 100, 100) + '%';
             document.getElementById('p2-progress').style.width = Math.min((s.scores[2] / WINNING_SCORE) * 100, 100) + '%';
 
@@ -203,7 +201,6 @@
                 info.textContent = s.currentPlayer === playerId ? "É a sua vez!" : "Aguarde a jogada de " + (s.currentPlayer === 1 ? s.player1_name : (s.player2_name || 'Oponente'));
             }
 
-            // OTIMIZAÇÃO: Varredura de DOM. Só reconstrói se o tabuleiro mudou totalmente (Nova Partida).
             const firstCard = document.getElementById('card-0');
             if (!firstCard || firstCard.dataset.emoji !== s.board[0].emoji) {
                 boardEl.innerHTML = '';
@@ -211,12 +208,17 @@
                     const el = document.createElement('div'); el.className = 'card cascade-in';
                     el.style.animationDelay = `${i * 0.015}s`; el.id = `card-${c.id}`; el.dataset.emoji = c.emoji;
                     el.innerHTML = `<div class="card-face card-front">${c.emoji}</div><div class="card-face card-back"></div>`;
+                    
+                    // Condição de clique simplificada e blindada
                     el.onclick = () => { if (!el.classList.contains('flipped') && !el.classList.contains('matched') && playerId === window.currentTurn && !checkMatchTimeout && !gameWon) flip(c.id); };
+                    
                     boardEl.appendChild(el);
+
+                    // REMOVE A CLASSE DE ANIMAÇÃO APÓS A ENTRADA PARA LIBERAR O CSS DA CARTA
+                    setTimeout(() => el.classList.remove('cascade-in'), 1500);
                 });
             }
 
-            // Atualiza apenas os estados das cartas (Performance 10x mais rápida)
             Object.values(s.board).forEach(c => {
                 const el = document.getElementById(`card-${c.id}`);
                 if (el) {
@@ -257,7 +259,7 @@
             const [a, b] = s.flippedCards;
             if (s.board[a].emoji === s.board[b].emoji) {
                 s.scores[playerId]++; s.board[a].isMatched = s.board[b].isMatched = true; s.matchedPairs++;
-                s.board[a].matchedBy = playerId; s.board[b].matchedBy = playerId; // Salva autoria para as cores
+                s.board[a].matchedBy = playerId; s.board[b].matchedBy = playerId; 
             } else {
                 s.board[a].isFlipped = s.board[b].isFlipped = false; s.currentPlayer = s.currentPlayer === 1 ? 2 : 1;
             }
