@@ -87,12 +87,7 @@
     .card.match-p1 .card-front { border-color: var(--player1-color); box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.3), 0 0 15px rgba(0, 240, 255, 0.4); color: var(--player1-color); }
     .card.match-p2 .card-front { border-color: var(--player2-color); box-shadow: inset 0 0 15px rgba(255, 0, 85, 0.3), 0 0 15px rgba(255, 0, 85, 0.4); color: var(--player2-color); }
 
-    .btn-action { margin-top: 15px; padding: 14px 25px; font-weight: 800; font-family: 'Poppins'; text-transform: uppercase; border: none; border-radius: 10px; cursor: pointer; color: white; width: 80%; max-width: 300px; transition: 0.2s; }
-    #play-again-btn { background: linear-gradient(135deg, #00f0ff, #0088ff); color: #000; display: none; }
-    #reset-button { background: rgba(255,255,255,0.1); margin-bottom: 15px; }
-    .btn-action:hover { transform: translateY(-2px); filter: brightness(1.2); }
-
-    .chat-container { width: 100%; max-width: 450px; background: rgba(22, 33, 62, 0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
+    .chat-container { width: 100%; max-width: 450px; background: rgba(22, 33, 62, 0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; margin-top: 15px;}
     .chat-messages { height: 120px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; font-size: 0.85em; }
     .chat-msg { padding: 8px 12px; border-radius: 10px; max-width: 85%; }
     .chat-msg.opponent { background: rgba(255,255,255,0.05); align-self: flex-start; }
@@ -100,6 +95,46 @@
     .chat-form { display: flex; border-top: 1px solid rgba(255,255,255,0.1); }
     .chat-form input { flex: 1; padding: 12px; border: none; background: transparent; color: white; font-family: 'Poppins'; outline: none; }
     .chat-form button { border: none; padding: 0 20px; background: transparent; color: var(--player1-color); cursor: pointer; font-size: 1.1em; border-left: 1px solid rgba(255,255,255,0.1); }
+
+    /* ================================================== */
+    /* NOVA TELA DE VITÓRIA SUPREMA (MISTURA PREMIUM)     */
+    /* ================================================== */
+    #victory-modal {
+        position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        opacity: 0; pointer-events: none; transition: opacity 0.5s ease;
+    }
+    #victory-modal.show { opacity: 1; pointer-events: all; }
+    
+    .victory-content {
+        background: rgba(15, 15, 26, 0.9); border: 2px solid rgba(255,255,255,0.1);
+        padding: 40px; border-radius: 24px; text-align: center; width: 90%; max-width: 400px;
+        transform: scale(0.8) translateY(-50px); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    }
+    #victory-modal.show .victory-content { transform: scale(1) translateY(0); }
+    
+    #v-avatar { width: 80px; height: 80px; font-size: 2.5em; margin: 0 auto 15px; border: 3px solid transparent; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); }
+    #v-title { margin: 0 0 5px 0; font-size: 2em; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
+    #v-desc { font-size: 1.1em; color: #a1a1b5; margin-bottom: 25px; font-weight: 600; }
+    
+    /* Variações de cor por Vencedor */
+    .v-theme-p1 { border-color: var(--player1-color) !important; box-shadow: 0 0 40px rgba(0, 240, 255, 0.2) !important; }
+    .v-theme-p1 #v-title { color: var(--player1-color); text-shadow: 0 0 15px rgba(0, 240, 255, 0.5); }
+    .v-theme-p1 #v-avatar { border-color: var(--player1-color); color: var(--player1-color); box-shadow: 0 0 20px rgba(0, 240, 255, 0.4); }
+
+    .v-theme-p2 { border-color: var(--player2-color) !important; box-shadow: 0 0 40px rgba(255, 0, 85, 0.2) !important; }
+    .v-theme-p2 #v-title { color: var(--player2-color); text-shadow: 0 0 15px rgba(255, 0, 85, 0.5); }
+    .v-theme-p2 #v-avatar { border-color: var(--player2-color); color: var(--player2-color); box-shadow: 0 0 20px rgba(255, 0, 85, 0.4); }
+
+    .v-theme-tie { border-color: #ffd700 !important; box-shadow: 0 0 40px rgba(255, 215, 0, 0.2) !important; }
+    .v-theme-tie #v-title { color: #ffd700; text-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+    .v-theme-tie #v-avatar { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
+
+    .btn-action { width: 100%; padding: 15px; font-size: 1.1em; font-weight: 800; font-family: 'Poppins'; text-transform: uppercase; border: none; border-radius: 12px; cursor: pointer; color: white; transition: 0.2s; margin-bottom: 10px; }
+    .btn-action:hover { transform: translateY(-2px); filter: brightness(1.2); }
+    #modal-play-again { background: linear-gradient(135deg, #00f0ff, #0088ff); color: #000; box-shadow: 0 5px 15px rgba(0, 240, 255, 0.3); }
+    #modal-reset { background: rgba(255,255,255,0.1); margin-bottom: 0; }
   </style>
 </head>
 <body>
@@ -123,10 +158,18 @@
   
   <div id="turn-info"><i class="fa-solid fa-spinner fa-spin"></i> Conectando...</div>
   <div class="game-board" id="game-board"></div>
-  <button id="play-again-btn" class="btn-action">Nova Partida</button>
-  <button id="reset-button" class="btn-action">Abandonar Sala</button>
   
   <div class="chat-container"><div class="chat-messages" id="chat-messages"></div><form class="chat-form" id="chat-form"><input type="text" id="chat-input" placeholder="Chat privado..." required><button type="submit"><i class="fa-solid fa-paper-plane"></i></button></form></div>
+
+  <div id="victory-modal">
+    <div class="victory-content" id="v-content">
+        <div id="v-avatar"><i class="fa-solid fa-trophy"></i></div>
+        <h2 id="v-title">VITÓRIA!</h2>
+        <p id="v-desc">Jogador venceu a partida!</p>
+        <button id="modal-play-again" class="btn-action">Nova Partida</button>
+        <button id="modal-reset" class="btn-action">Abandonar Sala</button>
+    </div>
+  </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -141,6 +184,7 @@
     let gameStateRef, gameId, playerId, checkMatchTimeout = null;
     window.currentTurn = 0; 
     let cachedScores = {1: -1, 2: -1}; 
+    let confettiFired = false; // Controle para não disparar confetes infinitamente
 
     async function init() {
         gameId = new URLSearchParams(window.location.search).get('game');
@@ -148,16 +192,12 @@
         if (!myUUID || !gameId) { window.location.href = 'index.html'; return; }
         gameStateRef = database.ref('games/' + gameId);
         
-        // CORREÇÃO: Restauro do registo do Jogador 2 no Firebase
         gameStateRef.transaction(cs => {
             if (!cs) return cs;
-            if (cs.player1_uuid === myUUID) {
-                playerId = 1; 
-            } else if (cs.player2_uuid === myUUID) {
-                playerId = 2;
-            } else if (!cs.player2_uuid) {
-                playerId = 2; 
-                cs.player2_uuid = myUUID; 
+            if (cs.player1_uuid === myUUID) { playerId = 1; } 
+            else if (cs.player2_uuid === myUUID) { playerId = 2; } 
+            else if (!cs.player2_uuid) {
+                playerId = 2; cs.player2_uuid = myUUID; 
                 cs.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || 'P2'; 
             }
             return cs;
@@ -170,6 +210,17 @@
     function triggerPop(id) {
         const el = document.getElementById(id); el.classList.remove('pop-anim');
         void el.offsetWidth; el.classList.add('pop-anim');
+    }
+    
+    // Função Suprema de Confetes
+    function triggerEpicConfetti() {
+        if (typeof confetti !== 'function') return;
+        const duration = 3500; const end = Date.now() + duration;
+        (function frame() {
+            confetti({ particleCount: 8, angle: 60, spread: 80, origin: { x: 0, y: 0.8 }, colors: ['#00f0ff', '#ff0055', '#ffffff', '#ffd700'] });
+            confetti({ particleCount: 8, angle: 120, spread: 80, origin: { x: 1, y: 0.8 }, colors: ['#00f0ff', '#ff0055', '#ffffff', '#ffd700'] });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
     }
 
     function setup() {
@@ -197,11 +248,44 @@
             
             const info = document.getElementById('turn-info');
             const gameWon = s.winner === 0 || s.winner === 1 || s.winner === 2;
+            const modal = document.getElementById('victory-modal');
+            const vContent = document.getElementById('v-content');
+            
             if (gameWon) { 
-                info.innerHTML = s.winner === 0 ? "Empate!" : `<i class="fa-solid fa-trophy"></i> ${(s.winner === 1 ? s.player1_name : s.player2_name)} Venceu!`; 
-                info.style.color = "#ffd700"; document.getElementById('play-again-btn').style.display = 'block';
+                info.style.opacity = "0"; // Esconde o info
+                
+                // Configura o Pódio Majestoso
+                vContent.className = 'victory-content'; // Reset
+                if (s.winner === 1) {
+                    vContent.classList.add('v-theme-p1');
+                    document.getElementById('v-avatar').innerHTML = '<i class="fa-solid fa-user-astronaut"></i>';
+                    document.getElementById('v-title').textContent = "VITÓRIA!";
+                    document.getElementById('v-desc').textContent = `${s.player1_name} dominou a partida!`;
+                } else if (s.winner === 2) {
+                    vContent.classList.add('v-theme-p2');
+                    document.getElementById('v-avatar').innerHTML = '<i class="fa-solid fa-user-ninja"></i>';
+                    document.getElementById('v-title').textContent = "VITÓRIA!";
+                    document.getElementById('v-desc').textContent = `${s.player2_name} dominou a partida!`;
+                } else {
+                    vContent.classList.add('v-theme-tie');
+                    document.getElementById('v-avatar').innerHTML = '<i class="fa-solid fa-handshake"></i>';
+                    document.getElementById('v-title').textContent = "EMPATE!";
+                    document.getElementById('v-desc').textContent = "Uma batalha de gigantes equilibrada.";
+                }
+                
+                modal.classList.add('show');
+                
+                // Dispara confetes apenas 1 vez por vitória
+                if (!confettiFired) {
+                    triggerEpicConfetti();
+                    confettiFired = true;
+                }
+                
             } else {
-                info.style.color = "#a1a1b5"; document.getElementById('play-again-btn').style.display = 'none';
+                info.style.opacity = "1";
+                modal.classList.remove('show');
+                confettiFired = false; // Reseta para a próxima partida
+                info.style.color = "#a1a1b5"; 
                 info.textContent = s.currentPlayer === playerId ? "É a sua vez!" : "Aguarde a jogada de " + (s.currentPlayer === 1 ? s.player1_name : (s.player2_name || 'Oponente'));
             }
 
@@ -216,7 +300,6 @@
                     el.onclick = () => { if (!el.classList.contains('flipped') && !el.classList.contains('matched') && playerId === window.currentTurn && !checkMatchTimeout && !gameWon) flip(c.id); };
                     
                     boardEl.appendChild(el);
-
                     setTimeout(() => el.classList.remove('cascade-in'), 1500);
                 });
             }
@@ -275,7 +358,7 @@
         checkMatchTimeout = null;
     }
 
-    document.getElementById('play-again-btn').onclick = () => {
+    document.getElementById('modal-play-again').onclick = () => {
         gameStateRef.transaction(s => {
             if (!s) return; const pairs = [...icons, ...icons].sort(() => 0.5 - Math.random());
             s.board = {}; pairs.forEach((icon, i) => s.board[i] = { id: i, emoji: icon, isFlipped: false, isMatched: false, matchedBy: null });
@@ -284,7 +367,7 @@
         });
     };
     
-    document.getElementById('reset-button').onclick = () => { 
+    document.getElementById('modal-reset').onclick = () => { 
         if(confirm('Tem certeza que deseja abandonar a sala? A partida será encerrada para você.')) {
             window.location.href = 'index.html'; 
         }
