@@ -9,6 +9,8 @@
   <meta name="theme-color" content="#0f0f1a">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+  
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -96,9 +98,6 @@
     .chat-form input { flex: 1; padding: 12px; border: none; background: transparent; color: white; font-family: 'Poppins'; outline: none; }
     .chat-form button { border: none; padding: 0 20px; background: transparent; color: var(--player1-color); cursor: pointer; font-size: 1.1em; border-left: 1px solid rgba(255,255,255,0.1); }
 
-    /* ================================================== */
-    /* NOVA TELA DE VITÓRIA SUPREMA (MISTURA PREMIUM)     */
-    /* ================================================== */
     #victory-modal {
         position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center;
         background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
@@ -118,7 +117,6 @@
     #v-title { margin: 0 0 5px 0; font-size: 2em; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
     #v-desc { font-size: 1.1em; color: #a1a1b5; margin-bottom: 25px; font-weight: 600; }
     
-    /* Variações de cor por Vencedor */
     .v-theme-p1 { border-color: var(--player1-color) !important; box-shadow: 0 0 40px rgba(0, 240, 255, 0.2) !important; }
     .v-theme-p1 #v-title { color: var(--player1-color); text-shadow: 0 0 15px rgba(0, 240, 255, 0.5); }
     .v-theme-p1 #v-avatar { border-color: var(--player1-color); color: var(--player1-color); box-shadow: 0 0 20px rgba(0, 240, 255, 0.4); }
@@ -181,10 +179,23 @@
     const icons = ['<i class="fa-solid fa-rocket"></i>', '<i class="fa-solid fa-ghost"></i>', '<i class="fa-solid fa-robot"></i>', '<i class="fa-solid fa-bug"></i>', '<i class="fa-solid fa-bolt"></i>', '<i class="fa-solid fa-fire"></i>', '<i class="fa-solid fa-snowflake"></i>', '<i class="fa-solid fa-cloud"></i>', '<i class="fa-solid fa-sun"></i>', '<i class="fa-solid fa-star"></i>', '<i class="fa-solid fa-gem"></i>', '<i class="fa-solid fa-bomb"></i>', '<i class="fa-solid fa-crown"></i>', '<i class="fa-solid fa-gamepad"></i>', '<i class="fa-solid fa-dice"></i>', '<i class="fa-solid fa-chess-knight"></i>', '<i class="fa-solid fa-anchor"></i>', '<i class="fa-solid fa-heart"></i>', '<i class="fa-solid fa-music"></i>', '<i class="fa-solid fa-paper-plane"></i>', '<i class="fa-solid fa-car"></i>', '<i class="fa-solid fa-bicycle"></i>', '<i class="fa-solid fa-umbrella"></i>', '<i class="fa-solid fa-mug-hot"></i>', '<i class="fa-solid fa-pizza-slice"></i>', '<i class="fa-solid fa-apple-whole"></i>', '<i class="fa-solid fa-ice-cream"></i>', '<i class="fa-solid fa-paw"></i>', '<i class="fa-solid fa-skull"></i>', '<i class="fa-solid fa-feather-pointed"></i>', '<i class="fa-solid fa-tree"></i>', '<i class="fa-solid fa-leaf"></i>'];
     const WINNING_SCORE = 17;
 
+    // --- CARREGAMENTO DE ÁUDIOS ---
+    const soundFlip = new Howl({ src: ['audio/flip.mp3'], volume: 0.8 });
+    const soundMatch = new Howl({ src: ['audio/match.mp3'], volume: 0.9 });
+    const soundError = new Howl({ src: ['audio/error.mp3'], volume: 0.6 });
+    const soundVictory = new Howl({ src: ['audio/victory.mp3'], volume: 1.0 });
+    const soundEmpate = new Howl({ src: ['audio/empate.mp3'], volume: 1.0 });
+
     let gameStateRef, gameId, playerId, checkMatchTimeout = null;
     window.currentTurn = 0; 
     let cachedScores = {1: -1, 2: -1}; 
-    let confettiFired = false; // Controle para não disparar confetes infinitamente
+    let confettiFired = false; 
+    
+    // Rastreadores para os sons reativos
+    let isInitialLoad = true;
+    let prevMatchedPairs = 0;
+    let prevWinner = null;
+    let prevFlippedCount = 0;
 
     async function init() {
         gameId = new URLSearchParams(window.location.search).get('game');
@@ -212,7 +223,6 @@
         void el.offsetWidth; el.classList.add('pop-anim');
     }
     
-    // Função Suprema de Confetes
     function triggerEpicConfetti() {
         if (typeof confetti !== 'function') return;
         const duration = 3500; const end = Date.now() + duration;
@@ -229,6 +239,31 @@
         gameStateRef.on('value', snap => {
             const s = snap.val(); if (!s) return;
             window.currentTurn = s.currentPlayer;
+
+            // --- LÓGICA DE ÁUDIO REATIVO ---
+            const currentFlippedCount = s.flippedCards ? s.flippedCards.length : 0;
+            if (!isInitialLoad) {
+                // Som de Carta Virada
+                if (currentFlippedCount > prevFlippedCount) soundFlip.play();
+                
+                // Som de Par Encontrado
+                if (s.matchedPairs > prevMatchedPairs) soundMatch.play();
+                
+                // Som de Erro (As cartas voltaram a zero e os pares não subiram)
+                if (prevFlippedCount === 2 && currentFlippedCount === 0 && s.matchedPairs === prevMatchedPairs) soundError.play();
+                
+                // Som de Vitória / Empate
+                if (s.winner !== prevWinner && s.winner !== null) {
+                    if (s.winner === 0) soundEmpate.play();
+                    else soundVictory.play();
+                }
+            }
+            // Atualiza os rastreadores
+            prevMatchedPairs = s.matchedPairs || 0;
+            prevWinner = s.winner;
+            prevFlippedCount = currentFlippedCount;
+            isInitialLoad = false;
+            // -------------------------------
 
             document.getElementById('p1-name').textContent = s.player1_name || "P1";
             document.getElementById('p2-name').textContent = s.player2_name || "P2";
@@ -252,10 +287,9 @@
             const vContent = document.getElementById('v-content');
             
             if (gameWon) { 
-                info.style.opacity = "0"; // Esconde o info
+                info.style.opacity = "0"; 
                 
-                // Configura o Pódio Majestoso
-                vContent.className = 'victory-content'; // Reset
+                vContent.className = 'victory-content'; 
                 if (s.winner === 1) {
                     vContent.classList.add('v-theme-p1');
                     document.getElementById('v-avatar').innerHTML = '<i class="fa-solid fa-user-astronaut"></i>';
@@ -275,7 +309,6 @@
                 
                 modal.classList.add('show');
                 
-                // Dispara confetes apenas 1 vez por vitória
                 if (!confettiFired) {
                     triggerEpicConfetti();
                     confettiFired = true;
@@ -284,7 +317,7 @@
             } else {
                 info.style.opacity = "1";
                 modal.classList.remove('show');
-                confettiFired = false; // Reseta para a próxima partida
+                confettiFired = false;
                 info.style.color = "#a1a1b5"; 
                 info.textContent = s.currentPlayer === playerId ? "É a sua vez!" : "Aguarde a jogada de " + (s.currentPlayer === 1 ? s.player1_name : (s.player2_name || 'Oponente'));
             }
