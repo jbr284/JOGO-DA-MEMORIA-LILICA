@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v22 (Epic Victory Screen)
+// SERVICE WORKER - VERSÃO v23 (Howler.js Audio System)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v22'; 
+const CACHE_NAME = 'jogos-online-cache-v23'; 
 const FILES_TO_CACHE = [
   './',
   'index.html',
@@ -11,7 +11,13 @@ const FILES_TO_CACHE = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js',
-  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'
+  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js',
+  'audio/flip.mp3',
+  'audio/match.mp3',
+  'audio/error.mp3',
+  'audio/victory.mp3',
+  'audio/empate.mp3'
 ];
 
 self.addEventListener('install', (e) => {
