@@ -29,7 +29,6 @@
 
     h1 { margin: 10px 0; font-size: 1.5em; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
     
-    /* PLACAR GLASSMORPHISM & BARRAS DE PROGRESSO */
     .game-info { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; max-width: 550px; margin-bottom: 15px; }
     
     .player-card { 
@@ -43,7 +42,6 @@
     .avatar-wrapper { width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.3); border: 2px solid transparent; transition: 0.3s; font-size: 1.2em; }
     .player-name { font-size: 0.9em; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     
-    /* ANIMAÇÃO TURNO ATIVO (PULSAÇÃO AVATAR) */
     .player-card.p1.active { box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); }
     .player-card.p2.active { box-shadow: 0 0 20px rgba(255, 0, 85, 0.2); }
     .player-card.p1.active .avatar-wrapper { border-color: var(--player1-color); animation: pulse-p1 1.5s infinite; }
@@ -56,30 +54,24 @@
     .stat-label { font-size: 0.65em; text-transform: uppercase; font-weight: 600; opacity: 0.7; }
     .stat-value { font-size: 1.5em; font-weight: 800; line-height: 1.1; transition: 0.2s; }
     
-    /* POP ANIMATION DOS NÚMEROS */
     @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.6); color: #fff; text-shadow: 0 0 10px currentColor; } 100% { transform: scale(1); } }
     .pop-anim { animation: pop 0.4s ease-out; }
 
-    /* BARRA DE PROGRESSO */
     .progress-bar { width: 100%; height: 6px; background: rgba(0,0,0,0.4); border-radius: 3px; margin-top: 10px; overflow: hidden; }
     .progress-fill { height: 100%; width: 0%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
     .p1 .progress-fill { background: var(--player1-color); box-shadow: 0 0 8px var(--player1-color); }
     .p2 .progress-fill { background: var(--player2-color); box-shadow: 0 0 8px var(--player2-color); }
 
-    /* EMBLEMA VS CENTRAL */
     .vs-badge { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--player2-color), var(--player1-color)); font-weight: 800; font-size: 1.1em; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 2; margin: 0 -5px; flex-shrink: 0; border: 2px solid var(--bg-dark); }
 
     #turn-info { font-weight: 600; margin-bottom: 10px; color: #a1a1b5; letter-spacing: 1px; font-size: 0.9em; text-transform: uppercase; }
     
-    /* CARTAS E TABULEIRO OTIMIZADOS */
     .game-board { display: grid; grid-template-columns: repeat(8, var(--card-size)); gap: var(--board-gap); perspective: 1000px; }
     .card { width: var(--card-size); height: var(--card-size); position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1); cursor: pointer; }
     
-    /* EFEITO CASCATA NA ENTRADA - CORRIGIDO PARA NÃO TRAVAR O GIRO */
     @keyframes cascadeIn { from { opacity: 0; transform: translateY(-30px) rotateY(-90deg) scale(0.8); } to { opacity: 1; transform: none; } }
     .cascade-in { animation: cascadeIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards; }
     
-    /* EFEITO HOVER E PADRÃO DO VERSO */
     .card:not(.flipped):not(.matched):hover { transform: translateY(-4px); }
     .card.flipped, .card.matched { transform: rotateY(180deg); cursor: default; }
     .card-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: calc(var(--card-size) * 0.5); }
@@ -92,7 +84,6 @@
     
     .card-front { background: var(--card-flipped); transform: rotateY(180deg); color: white; text-shadow: 0 4px 8px rgba(0,0,0,0.6); border: 2px solid transparent; transition: 0.3s; }
     
-    /* CORES PERSONALIZADAS DE SUCESSO (MATCH) */
     .card.match-p1 .card-front { border-color: var(--player1-color); box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.3), 0 0 15px rgba(0, 240, 255, 0.4); color: var(--player1-color); }
     .card.match-p2 .card-front { border-color: var(--player2-color); box-shadow: inset 0 0 15px rgba(255, 0, 85, 0.3), 0 0 15px rgba(255, 0, 85, 0.4); color: var(--player2-color); }
 
@@ -156,11 +147,24 @@
         const myUUID = sessionStorage.getItem('jogoMemoriaUUID');
         if (!myUUID || !gameId) { window.location.href = 'index.html'; return; }
         gameStateRef = database.ref('games/' + gameId);
+        
+        // CORREÇÃO: Restauro do registo do Jogador 2 no Firebase
         gameStateRef.transaction(cs => {
             if (!cs) return cs;
-            if (cs.player1_uuid === myUUID) playerId = 1; else if (cs.player2_uuid === myUUID) playerId = 2;
+            if (cs.player1_uuid === myUUID) {
+                playerId = 1; 
+            } else if (cs.player2_uuid === myUUID) {
+                playerId = 2;
+            } else if (!cs.player2_uuid) {
+                playerId = 2; 
+                cs.player2_uuid = myUUID; 
+                cs.player2_name = sessionStorage.getItem('jogoMemoriaPlayerName') || 'P2'; 
+            }
             return cs;
-        }, (err, ok) => { if (ok) setup(); });
+        }, (err, ok) => { 
+            if (ok && playerId) setup(); 
+            else { alert("Não foi possível entrar na sala."); window.location.href = 'index.html'; }
+        });
     }
 
     function triggerPop(id) {
@@ -280,7 +284,6 @@
         });
     };
     
-    // --- AQUI ESTÁ A TRAVA DE SEGURANÇA ---
     document.getElementById('reset-button').onclick = () => { 
         if(confirm('Tem certeza que deseja abandonar a sala? A partida será encerrada para você.')) {
             window.location.href = 'index.html'; 
