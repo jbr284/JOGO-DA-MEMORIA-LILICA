@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v20 (Safety Lock no Botão Sair)
+// SERVICE WORKER - VERSÃO v21 (Fix Player 2 Registration)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v20'; 
+const CACHE_NAME = 'jogos-online-cache-v21'; 
 const FILES_TO_CACHE = [
   './',
   'index.html',
