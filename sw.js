@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v21 (Fix Player 2 Registration)
+// SERVICE WORKER - VERSÃO v22 (Epic Victory Screen)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v21'; 
+const CACHE_NAME = 'jogos-online-cache-v22'; 
 const FILES_TO_CACHE = [
   './',
   'index.html',
