@@ -179,7 +179,6 @@
     const icons = ['<i class="fa-solid fa-rocket"></i>', '<i class="fa-solid fa-ghost"></i>', '<i class="fa-solid fa-robot"></i>', '<i class="fa-solid fa-bug"></i>', '<i class="fa-solid fa-bolt"></i>', '<i class="fa-solid fa-fire"></i>', '<i class="fa-solid fa-snowflake"></i>', '<i class="fa-solid fa-cloud"></i>', '<i class="fa-solid fa-sun"></i>', '<i class="fa-solid fa-star"></i>', '<i class="fa-solid fa-gem"></i>', '<i class="fa-solid fa-bomb"></i>', '<i class="fa-solid fa-crown"></i>', '<i class="fa-solid fa-gamepad"></i>', '<i class="fa-solid fa-dice"></i>', '<i class="fa-solid fa-chess-knight"></i>', '<i class="fa-solid fa-anchor"></i>', '<i class="fa-solid fa-heart"></i>', '<i class="fa-solid fa-music"></i>', '<i class="fa-solid fa-paper-plane"></i>', '<i class="fa-solid fa-car"></i>', '<i class="fa-solid fa-bicycle"></i>', '<i class="fa-solid fa-umbrella"></i>', '<i class="fa-solid fa-mug-hot"></i>', '<i class="fa-solid fa-pizza-slice"></i>', '<i class="fa-solid fa-apple-whole"></i>', '<i class="fa-solid fa-ice-cream"></i>', '<i class="fa-solid fa-paw"></i>', '<i class="fa-solid fa-skull"></i>', '<i class="fa-solid fa-feather-pointed"></i>', '<i class="fa-solid fa-tree"></i>', '<i class="fa-solid fa-leaf"></i>'];
     const WINNING_SCORE = 17;
 
-    // --- CARREGAMENTO DE ÁUDIOS ---
     const soundFlip = new Howl({ src: ['audio/flip.mp3'], volume: 0.8 });
     const soundMatch = new Howl({ src: ['audio/match.mp3'], volume: 0.9 });
     const soundError = new Howl({ src: ['audio/error.mp3'], volume: 0.6 });
@@ -191,7 +190,6 @@
     let cachedScores = {1: -1, 2: -1}; 
     let confettiFired = false; 
     
-    // Rastreadores para os sons reativos
     let isInitialLoad = true;
     let prevMatchedPairs = 0;
     let prevWinner = null;
@@ -240,30 +238,21 @@
             const s = snap.val(); if (!s) return;
             window.currentTurn = s.currentPlayer;
 
-            // --- LÓGICA DE ÁUDIO REATIVO ---
             const currentFlippedCount = s.flippedCards ? s.flippedCards.length : 0;
             if (!isInitialLoad) {
-                // Som de Carta Virada
                 if (currentFlippedCount > prevFlippedCount) soundFlip.play();
-                
-                // Som de Par Encontrado
                 if (s.matchedPairs > prevMatchedPairs) soundMatch.play();
-                
-                // Som de Erro (As cartas voltaram a zero e os pares não subiram)
                 if (prevFlippedCount === 2 && currentFlippedCount === 0 && s.matchedPairs === prevMatchedPairs) soundError.play();
                 
-                // Som de Vitória / Empate
                 if (s.winner !== prevWinner && s.winner !== null) {
                     if (s.winner === 0) soundEmpate.play();
                     else soundVictory.play();
                 }
             }
-            // Atualiza os rastreadores
             prevMatchedPairs = s.matchedPairs || 0;
             prevWinner = s.winner;
             prevFlippedCount = currentFlippedCount;
             isInitialLoad = false;
-            // -------------------------------
 
             document.getElementById('p1-name').textContent = s.player1_name || "P1";
             document.getElementById('p2-name').textContent = s.player2_name || "P2";
@@ -382,8 +371,13 @@
                 s.board[a].isFlipped = s.board[b].isFlipped = false; s.currentPlayer = s.currentPlayer === 1 ? 2 : 1;
             }
             s.flippedCards = [];
-            if (s.matchedPairs === 32) {
-                if (s.scores[1] > s.scores[2]) s.winner = 1; else if (s.scores[2] > s.scores[1]) s.winner = 2; else s.winner = 0;
+            
+            // --- NOVA REGRA DE FIM DE JOGO (IMEDIATO AOS 17 PONTOS) ---
+            if (s.scores[1] >= WINNING_SCORE || s.scores[2] >= WINNING_SCORE || s.matchedPairs === 32) {
+                if (s.scores[1] > s.scores[2]) s.winner = 1; 
+                else if (s.scores[2] > s.scores[1]) s.winner = 2; 
+                else s.winner = 0;
+                
                 if (s.winner !== 0) s.victories[s.winner]++;
             }
             return s;
