@@ -1,7 +1,7 @@
 // ===============================
-// SERVICE WORKER - VERSÃO v23 (Howler.js Audio System)
+// SERVICE WORKER - VERSÃO v24 (Regra dos 17 Pontos)
 // ===============================
-const CACHE_NAME = 'jogos-online-cache-v23'; 
+const CACHE_NAME = 'jogos-online-cache-v24'; 
 const FILES_TO_CACHE = [
   './',
   'index.html',
